@@ -1,14 +1,14 @@
-Column;Description;datatype
-id;unique identifier of patient;int
-gender;male of female;chr
-age;age of patient;dbl
-hypertension;suffering from hypertension?;int
-heart_disease;suffering from heart disease?;int
-ever_married;married or married in the past?;chr
-work_type;sort of work;chr
-Residence_type;type of residence;chr
-avg_glucose_level;average level of glucose;dbl
-bmi;body mass index;chr
-smoking_status;smoking history;chr
-stroke;stroke history yes or no;int
+Column;Description;value;datatype
+id;unique identifier of patient;number;int
+gender;male of female;sex;chr
+age;age of patient;number;dbl
+hypertension;suffering from hypertension?;binairy;int
+heart_disease;suffering from heart disease?;binary;int
+ever_married;married or married in the past?;binary;chr
+work_type;sort of work;string;chr
+Residence_type;type of residence;string;chr
+avg_glucose_level;average level of glucose;number;dbl
+bmi;body mass index;number;chr
+smoking_status;smoking history;string;chr
+stroke;stroke history;binary;int
  
