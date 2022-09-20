@@ -2,16 +2,25 @@
 title: "Stroke"
 author: "Pascal Visser"
 date: "2022-09-14"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# EDA
+# Explodanary Data Analysis
 
-## intro
+```{r}
+# load libraries
+library(tidyverse)
+library(naniar)
+```
+
+
+## 1. Intro
 
 A stroke is a life-threatening medical condition, where there is no or poor blood flow to (parts) the brain. This causes parts of the brain to stop functioning and over minutes time die off. A stroke or brain attack is labelled as the second leading cause of death worldwide and is responsible for an annual mortality of about 5.5 million.
 
@@ -21,26 +30,94 @@ This dataset consists of people that had a stroke and people that have not. The 
 
 
 
-## Dataset
+## 2. Dataset
 
-The data is as said, lifestyle information of people with stroke history or not. In this section the data will be talked trough and explaned.
+The data is as said, lifestyle information of people with stroke history or not. In this section the data will be talked trough and the variables explained.
 First the data is loaded in:
 
 ```{r}
+
+# load in the data
 strokedata <- read.csv("Data/Stroke_dataset.csv", header = T)
 head(strokedata)
+cat("The dataset is", dim(strokedata)[1], "rows long, and has", dim(strokedata)[2], "columns")
 ```
 
-```{r}
+Above, the first six rows of the data is shown. Also is given how many records there are. The codebook will clarify the variables and there values.
+The codebook will be loaded in:
+
+```{r warning=FALSE}
+
+# load codebook
 codebook <- read.table("Data/codebook.txt", header = T, sep = ';')
 codebook
 ```
 
+The codebook gives a detailed description the columns of the dataset and column content about the value/datatypes. This is necessary to understand the data. 
 
-# program part
+Now that the data is loaded in, there can be looked at the negatives of the data. The biggest flaws are the datatypes of the columns that are not equal. For example: the columns age is the type double instead of integer. The column BMI is character, while a double datatype is much more logical. Also the columns hypertension and hearth disease are a yes or no question, in these columns  the yes or no is represented by 0 or 1. The columns of marriage history is a yes or no question too, but here yes or no is represented by text. This also needs modifying.  
 
-- Load dataset
-- Modify dataset?
-- Dataset statistics 
+Additionally is it good to know how many NA's are present in the data. These missing values can screw the data, also values like 'unknown' can cast the data to the character data type. 
+
+```{r}
+# check unique values of character values
+cat("Gender:")
+unique(strokedata$gender)
+cat("Married:")
+unique(strokedata$ever_married)
+cat("Work type:")
+unique(strokedata$work_type)
+cat("Residence type:")
+unique(strokedata$Residence_type)
+cat("Smoking:")
+unique(strokedata$smoking_status)
+```
+Above reveals the Smoking has a value "Unknown". This need to be addressed in the modifying section. For the N/A the scan function of the naniar package is used.
+
+```{r}
+# scan for missing values
+miss_scan_count(data = strokedata, search = list("N/A", "Unknown"))
+```
+
+The column bmi is responsible for 201 missing values, these missing values are likely responsible for the column to be parsed as character datatype. the column smoking_status has 1544 missing values. 1544 values is a big number and need to be dealed with in the modifying. 
+
+## 3 Dataset modifying
+
+As talked in the pervious section, some columns types makes no sense, these types need to be changed to more sensible types. The columns that will be converted are:
+
+
+- age, dbl -> int
+- bmi, chr -> dbl
+
+and additionally the contents of the column ever_married will be converted to binary, and the smoking_status unknown will be cleared.  
+
+First the column age will be cast to integer, because a double type with decimals makes no sense in age, secondly, the column bmi will be cast to double, to keep the decimal precision:
+
+```{r}
+# cast columns to another type
+strokedata <- transform(strokedata, age = as.integer(age))
+strokedata <- transform(strokedata, bmi = as.double(bmi))
+```
+
+now the ever_married column need to be changed to binary and a integer datatype:
+
+```{r}
+strokedata$ever_married[strokedata$ever_married == "Yes"] <- "1"
+strokedata$ever_married[strokedata$ever_married == "No"] <- "0"
+strokedata <- transform(strokedata, ever_married = as.integer(ever_married))
+strokedata
+```
+
+Now what is left are the missing values, bmi has N/A and smoking status has "unknown". For bmi the na's will be replaced with the mean of the column:
+
+```{r}
+
+```
+
+
+
+
+
+
 
 
