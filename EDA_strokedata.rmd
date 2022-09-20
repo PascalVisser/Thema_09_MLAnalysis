@@ -1,0 +1,46 @@
+---
+title: "Stroke"
+author: "Pascal Visser"
+date: "2022-09-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# EDA
+
+## intro
+
+A stroke is a life-threatening medical condition, where there is no or poor blood flow to (parts) the brain. This causes parts of the brain to stop functioning and over minutes time die off. A stroke or brain attack is labelled as the second leading cause of death worldwide and is responsible for an annual mortality of about 5.5 million.
+
+This dataset consists of people that had a stroke and people that have not. The variables are values that indicate there live style and environment. The goal of this research is to calculate the chance of a stroke based of there lifestyle. This can be accomplished by machine learning. This gives the following research question:
+
+*Is it possible to produce an accurate algorithm with machine learning, to calculate the risk of a stroke based on life style variables of people with stroke history and people that never had a stroke?* 
+
+
+
+## Dataset
+
+The data is as said, lifestyle information of people with stroke history or not. In this section the data will be talked trough and explaned.
+First the data is loaded in:
+
+```{r}
+strokedata <- read.csv("Data/Stroke_dataset.csv", header = T)
+head(strokedata)
+```
+
+```{r}
+codebook <- read.table("Data/codebook.txt", header = T, sep = ';')
+codebook
+```
+
+
+# program part
+
+- Load dataset
+- Modify dataset?
+- Dataset statistics 
+
+
