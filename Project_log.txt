@@ -10,4 +10,14 @@ made codebook
 
 Day 3:
 
+modifiy dataset
+
+Day 4:
+
+plot dataset
+
+Day 5:
+
+
+
 
