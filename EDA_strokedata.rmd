@@ -258,15 +258,42 @@ fig4 <- fig4 + scale_x_discrete(breaks=c("0", "1"), labels=c("No", "Yes"))
 
 fig5 <- ggplot(health, aes(x=factor(heart_disease))) + 
   geom_bar(width = 0.6, fill = c("darkgreen", "red")) +
-  labs(title = "heart_disease", x = "Heart disease ?", y  = "Count")
+  labs(title = "Heart_disease", x = "Heart disease ?", y  = "Count")
 
 fig5 <- fig5 + scale_x_discrete(breaks=c("0", "1"), labels=c("No", "Yes"))
 
 
 plot_grid(fig4, fig5, labels = "AUTO")
 ```
-The cardiovascular diseases are both overwhelming no, this is also imbalanced.S
+The cardiovascular diseases are both overwhelming no, this is also imbalanced. 
 
+## 4.5 Lifestyle varibles
+
+There are three lifestyle variables: married?, work type and residence type. These variables tells about the persons possible stress level. all these factor can contribute toward stress and possible health affection. 
+
+## 4.5.1 Marriage status
+
+The below plot shows the distribution of marriage. 
+
+```{r}
+ggplot(health, aes(x = ever_married)) +
+  geom_bar(width = 0.8, fill = c("gray", "gold")) +
+  scale_x_continuous(breaks = c(0,1), labels = c("No", "yes")) + 
+  labs(x = "Marriage status", y = "Count", title = "Marrriage status")
+```
+```{r}
+ggplot(health, aes(x = work_type)) +
+  geom_bar(position = 'identity', fill = c("orchid", "darkblue", "black", "darkgreen","seagreen")) +
+  labs(x = "Type of work", y = "Count", title = "Type of work per person")
+```
+
+```{r}
+ggplot(health, aes(x =  Residence_type)) +
+  geom_bar(position = 'identity', fill = c("mediumseagreen", "lightslategray")) +
+    labs(x = "Residence Type", y = "Count", title = "Living area per person")
+
+table(health$Residence_type)
+```
 
 # 5. Conclusion
 
