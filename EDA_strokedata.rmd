@@ -26,6 +26,7 @@ library(knitr)
 library(pander)
 library(cowplot)
 library(dplyr)
+library(DMwR)
 ```
 
 
@@ -155,6 +156,7 @@ Their are 885, 1892 and 789 records of not unknowns. Based on these numbers, we 
 ```{r}
 # Calculate the probability of formerly smoker, current smokers and non-smokers given that there's only this three categories in the smoking_status column
 
+#prop.table?
 prob.Formerly <- 885 / (885 + 1892 + 789)
 prob.Never <- 1892 / (885 + 1892 + 789)
 prob.Smoke <- 789 / (885 + 1892 + 789)
@@ -253,7 +255,7 @@ There are 5110 people in the dataset from which there is data, the gender and ag
 ```{r}
 # make age and gender plot
 ggplot(health, aes(x=age, fill=gender, color=gender)) +
-    geom_density() +
+    geom_density(alpha =.85) +
     labs(title = "Age/gender distribution", x = "Age", y  = "Count") + 
     geom_vline(aes(xintercept=mean(age)), color = 'green', lwd = 1, linetype = 'dashed')
 ```
@@ -284,14 +286,14 @@ Most of the people never have smoke, but a fairly amount of the people smokes or
 
 ### 4.4.2 BMI and Glucose levels
 
-BMI and glucose levels are also a good indication of general health. High BMI and glucose levels are considered bad for health. 
+Body mass index (BMI) and glucose levels are also a good indication of general health. High BMI and glucose levels are considered bad for health. 
 
 ```{r}
 
 fig2 <- ggplot(health, aes(x = bmi)) + 
   geom_histogram(aes(y = ..density..), bins = 60, color = 1, fill = "gray") + 
   geom_density(lwd = 1, linetype = 2, color = 'red') +
-  labs(title = "Bmi distribution", x = "BMI", y = "Density") +
+  labs(title = "Bmi distribution", x = "Body Mass Index", y = "Density") +
   geom_vline(aes(xintercept=mean(bmi)), color = 'green', lwd = 1) +
   geom_vline(xintercept = 35, color = 'blue', lwd = 1)
 
@@ -311,7 +313,7 @@ BMI has a sort of normal distribution, with a mean of ~ 28. A BMI between 25 - 3
 For glucose level, the distribution is a little bit right skewed with a bulge toward the end of the x axis. The mean of 106 is high. 99 mg/dL or lower is normal, 100 to 125 mg/dL indicates you have pre diabetes, and 126 mg/dL or higher indicates you have diabetes. The green line represents 99 mg/dL and the blue line 125 mg/dL. These borders shows that, according to the above information. All the people left of the green line are healthy and all the people right of the blue line have diabetes. so, their are some serious unhealty people according to these numbers.
 
 ```{r}
-table(health$stroke[health$bmi > 35 & health$avg_glucose_level > 125])
+length(health$id[health$bmi > 35 & health$avg_glucose_level > 125])
 ```
 It tells that with the above information 265 people are serious unhealthy
 
@@ -343,7 +345,7 @@ There are three lifestyle variables: married?, work type and residence type. The
 
 ### 4.5.1 Marriage status
 
-The below plot shows the distribution of marriage. A married life could be stressful.  
+The below plot shows the distribution of marriage. A married life could be stressful, even as a divorce. The 'yes' in ever married tells not the whole story, because a person could be married in the past, but is now divorced. These previously married people also are categorised into married. Which makes the 'yes' records a bit iffy. 
 
 ```{r}
 ggplot(health, aes(x = ever_married)) +
@@ -351,7 +353,7 @@ ggplot(health, aes(x = ever_married)) +
   scale_x_continuous(breaks = c(0,1), labels = c("No", "yes")) + 
   labs(x = "Marriage status", y = "Count", title = "Marrriage status")
 ```
-As is shown, most people have been married at some point in their lives. Their is a sizeable group with people that have not been married. This maybe could been young people, which would be logic. The code below tests this hypothesis:
+As is shown, most people have been married at some point in their lives. The not-married group is a sizeable group with people that have not been married. This maybe could been young people, which would be logic. The code below tests this hypothesis:
 
 ```{r}
 cat("Mean age of not married: ", round(mean(health$age[health$ever_married == "0"]), 2), '\n')
@@ -374,7 +376,7 @@ looking at the graph, most people work for a private company. Children, governme
 ```{r}
 table(health$gender[health$work_type == 'children'])
 ```
-surprisingly, children is balanced between male and female. so the thought of extra stress on women with children (which possibly can lead to higher stroke chances) can be rejected.  
+Surprisingly, children is balanced between male and female. so the thought of extra stress on women with children (which possibly can lead to higher stroke chances) can be rejected.  
 
 ### 4.5.2 Residence type
 
@@ -396,37 +398,204 @@ The mean ages did not show any significant age difference between living rural o
 
 # 5. Comparing variables
 
+Now that all variables are shown, as standalone. It is time to compare variables with each other. Looking at the variables, their are two types, lifestyle and health. Obviously, health variables is the first thing to look at, because stroke is a cardiovascular disease. For this reason, health variables will be compared against stroke events. 
+
+# 5.1 health
+
+In the dataset there are multiple people with heart disease and hypertension, could this combination be related towards stroke events? We take a look at hypertension at stroke and heart disease at stroke, also we look at heart disease and hypertension together.
+
+```{r}
+# total cases of heart diseases and hypertension
+cat(" Number of cases with stroke: ", sum(health$stroke),"\n","Number of cases with heart disease: ", sum(health$heart_disease),"\n","Number of cases with hypertension: ", sum(health$hypertension))
+```
+Inspecting the numbers above,  their are more heart disease and hypertension cases than stroke events. So, not all heart disease and hypertension cases could be linked to stroke events. 
+
+So, how many stroke cases did also have underlying conditions such as heart disease and hypertension?
+
+```{r}
+# stroke/heart disease
+cat("The number of case with stroke and heart disease are: ",sum(health$stroke[health$heart_disease == 1]),"\n")
+
+# stroke/hypertension
+cat("The number of case with stroke and hypertension are: ",sum(health$stroke[health$hypertension == 1]),"\n")
+
+# stroke/ heart disease and hypertension
+cat("The number of case with stroke and heart disease & hypertension are: ",sum(health$stroke[health$hypertension == 1 & health$heart_disease == 1]))
+```
+The relationship between stroke and heart disease |& hypertension is not big. Only 13 cases of the 249 stroke events have two other cardiovascular diseases. This means that, according to this dataset, the relation between hypertension/heart disease and stroke is not great.
+
+Next, looking at smoke. There is a expectation that smoking is related to cardiovascular diseases. So, expected is that the most stroke events occurred with smokers or formerly smokers.  
+
+```{r}
+ggplot(health[health$stroke == T,], aes(x=smoking_status)) + geom_bar(position = 'dodge', fill = c("gray", "gold", "gray")) +
+  labs(x = "Smoking status", y = "Stroke events", title = "Relation of Smoking and stroke events")
+```
+
+The graph above shows that the Group with the most stroke events are the non-smokers. Something that wasn't expected, but take into mind that the non smokers group is also the biggest group in the dataset. Outnumbering the other smoking groups by at least 1000 records. 
+
+high BMI and glucose levels can also contribute towards cardiovascular diseases. The graph beneath checks if it is true that high BMI and glucose levels increase the chance of a stroke.
+
+```{r}
+ggplot(health[health$stroke == T,], aes(x = avg_glucose_level, y = bmi), ) + geom_point(show.legend = T) + 
+  labs(x = "Glucose level (mg/dL)", y = "Body Mass index", title = "Stroke events, BMI/glucose level values") +
+  geom_hline(yintercept = 35, color = "blue", lwd = 1) +
+  geom_vline(xintercept = 125, color = "red", lwd = 1) +
+  annotate("text", x= 173, y = 50, label="Critical region", color= "darkred", lwd = 5) +
+  annotate("text", x= 185, y = 20, label="High glucose/low BMI", color= "black", lwd = 5) +
+  annotate("text", x= 85, y = 50, label="High BMI/low glucose", color= "black", lwd = 5) +
+  annotate("text", x= 65, y = 20, label="Healthy", color= "darkgreen", lwd = 5) +
+  geom_rect(aes(xmin= 125, xmax = 275, ymin = 35, ymax = 60), fill = "red", alpha = 0.002)
+```
+
+All the records in the graph above are people that had a stroke. Remembering the section about BMI en glucose levels, a BMI of 35 is considered to high and a glucose level of 125 mg/dl is also to high. The region in red is called the 'critical region'. This region is where there are records of people with a BMI high than 35 and a glucose level high than 125 mg/dL. So, the critical region is where the very unhealthy people are. The expectation is that the most stroke events happens by these people. 
+
+But, the most of the records are outside of the critical region, most people reside in the 'healthy' region. So the assumption of the contribution of high BMI and high glucose levels towards strokes  can be rejected based on this dataset. 
+
+##  5.2 lifestyle
+
+The lifestyle variables tells about the living, working and marriage status of a person. A successfully stress free life would reduce the chances of stroke, won't it? To test this hypothesis the lifestyle variables are compared against the classifier stroke.
+
+The first look is at Work type, the type of work someone does
+
+```{r}
+round(prop.table(table(health$work_type[health$stroke == T])) * 100, 1)
+```
+The table overhead tells that the  most stroke events happens by people that are working for a private company 59,8%. To recall the plot of work types earlier, the most people work at private companies, so it is not unexpected that the most stroke events happens by people that work for a private company.
+
+Let's take a look a living area. The living area's are rural or urban. Earlier is said that the mean age of living is not that different. So, the assumption that young people, that mostly life in urban regions, decreases the percentage of strokes events in that living region can be rejected. 
+
+```{r}
+round(prop.table(table(health$Residence_type[health$stroke == T])) * 100, 1)
+```
+
+viewing the percentages above, the most stroke events happens at urban region. With not a big difference between the percentages. Which leave marriage status as the last variable.
+
+The variable ever married indicate if a person is married of have been married at some point in their life. The percentages beneath shows the stroke events by married status. 
+
+```{r}
+round(prop.table(table(health$ever_married[health$stroke == T]))* 100, 1)
+```
+
+Interesting is that The majority of the stroke events happens by people that are or have been married, 88,4%. But, take into mind that the most people that are married are older then the not married people. Speaking of age, what is the age where most stroke events take place?
+
+```{r}
+ggplot(health[health$stroke == T,], aes(x = age, fill = gender)) +
+  geom_density(aes(y = stat(count)), alpha=0.6) + 
+  geom_vline(xintercept = mean(health$age[health$stroke == T]), linetype = 'dashed', color = 'seagreen') +
+  labs(x = "Age", y = "Number of stroke events", title = "Age and gender in relation to stroke events" )
+```
+
+In the distribution above is clearly seen that strokes mostly affects older people, which is expected. The mean age of stroke is 67 years old. Also it is more frequent with female than with male. 
+
 
 # 6. EDA conclusion
 
-The data is in a good condition with several variables to work with for machine learning. The removal of the Na's made the quality of the data better, mainly trough the conversion of the term 'unknown' by smoking status. Also the casting of types helps al lot, by creating a simple but challenging dataset, But the data is still having one big flaw. 
+The data is in a good condition with several variables to work with for machine learning. The removal of the Na's made the quality of the data better, mainly trough the conversion of the term 'unknown' by smoking status. Also the casting of types helps al lot. The variables does not show in the ED a very big difference in relation with stroke. but the variables age and marriage status shows some hope. But the data is still having one big flaw. 
 
 The plots shows that the distribution of certain variables skewed is, namely: stroke, hypertension and heart_disease. These variable have a very big imbalance inside. This imbalance can cause problems with machine learning because saying 'No' at these variables can give you a 95%+ accuracy. This imbalance need to be tackled before moving on into machine learning. By doing this, the dataset can be workable for machine learning.
 
 
-# 6. Machine learning
+# 7. Machine learning
 
-// intro ml
+The Goal in the machine learning project is to predict a chance of a stroke event based of the health and lifestyle variables. This part covers the cleaning of the data for machine learning, determine quality metrics and investigate performance of machine learning algorithms. 
 
-// dataset changing 
+For the machine learning (ML) a program named Weka will be used. Weka is a collection of machine learning algorithms for data mining tasks. It contains tools for data preparation, classification, regression, clustering, association rules mining, and visualization. In this analysis Weka version 3.9.6 is used. 
 
+
+## 7.1 Dataset changing 
+
+As talked over in the EDA, the dataset is okay but infected with imbalanced data. Namely the variables hypertension, heart disease and the classifier stroke. By leaving the imbalance in the data, the ML algorithm will bow towards the 'No', because this automatic will give a 95% accuracy. Any sort of algorithm will tent to high accuracy, if that high percentage can be achieved by taking the majority, it will. So, it is necessary to tackle this imbalance.
+
+### 7.1.1 Methods
+
+With imbalanced data sets, an algorithm doesn't get the necessary information about the minority class to make an accurate prediction. Which will lead to misleading accuracies. 
+
+There are a few ways to fix imbalanced dataset:
+
+1. Undersampling
+2. Oversampling 
+3. Synthetic Data Generation
+4. Cost Sensitive Learning
+
+*Undersampling* is reducing the number of observations from the majority class to achieve a balance. Undersampling can be split into two types: random and informative. Random undersampling means, taking random records from the majority and eliminate these to achieve a balance. Informative undersampling means eliminate records based on a pre-defined condition. undersampling seems good, but the danger lies in deleting (unwanted)
+important information for the algorithms. Not the best choice.
+
+*Oversampling* is replicating records from the minority class. This can also be random or informative. the advantage with this method is that there is no information loss. But, with extra records from the minority, it can lead to overfitting. 
+
+*Synthetic Data Generation* is a method to, in stead of replication, add observations to the minority. It is a type of oversampling. These new observations are artificial generated. The prefect method for this is SMOTE (synthetic minority oversampling technique). The SMOTE algorithm creates artificial data based on feature space. similarities from minority samples. It creates a random set of minority class observations to shift the classifier learning bias toward the minority class. This method looks really good from this dataset.
+
+*Cost Sensitive Learning* is the last technique. It puts weight on misclassified observations. There are penalties applied at false positives and false negatives. By doing this, the algorithm knows which classifications are 'heavier' to classify. It look good to use on the dataset.
+
+Inspecting the four methods above for fixing imbalanced dataset. Synthetic Data Generation with SMOTE looks the best. This method generates new data for the minority class without losing important information or oversample the data with duplicate observations.
+
+### 7.1.2 SMOTE
+
+The SMOTE technique creates a new dataset by oversampling observations from the minority class. Which is excellent for this imbalanced dataset. The easiest way is to use the SMOTE() function from the 'DMwR' package. But, there is a problem with using SMOTE, there are categorical variables and numeric variables. SMOTE works best with numeric data. Luckily, the categorical variables are not big. The biggest is work_type with four labels. The code below convert the variables to numeric, there are seven variables that need changing: 
 
 ```{r}
+# gender
+health$gender <- as.character(health$gender)
+
+health$gender[health$gender == "Male"] <- 1
+health$gender[health$gender == "Female"] <- 0
+names(health)[names(health) == "gender"] <- "is_Male?"
+
+health$`is_Male?` <- as.integer(health$`is_Male?`)
+
+#work_type
+health$work_type <- as.character(health$work_type)
+
+health$work_type[health$work_type == "Never_worked"] <- 0
+health$work_type[health$work_type == "children"] <- 1
+health$work_type[health$work_type == "Self-employed"] <- 2
+health$work_type[health$work_type == "Govt_job"] <- 3
+health$work_type[health$work_type == "Private"] <- 4
+
+health$work_type <- as.integer(health$work_type)
+
+#Residence_type
+health$Residence_type <- as.character(health$Residence_type)
+
+health$Residence_type[health$Residence_type == "Rural"] <- 0
+health$Residence_type[health$Residence_type == "Urban"] <- 1
+names(health)[names(health) == "Residence_type"] <- "living_urban?"
+
+health$`living_urban?` <- as.integer(health$`living_urban?`)
+
+#smoking_status
+
+health$smoking_status <- as.character(health$smoking_status)
+
+health$smoking_status[health$smoking_status == "never smoked"] <- 0
+health$smoking_status[health$smoking_status == "formerly smoked"] <- 1
+health$smoking_status[health$smoking_status == "smokes"] <- 2
+
+health$smoking_status <- as.integer(health$smoking_status)
 # relocate classifier
 health <- health %>% relocate(stroke, .after = last_col())
 
-# change binary values to true or false
-health$stroke <- as.logical(health$stroke)
-health$hypertension <- as.logical(health$hypertension)
-health$heart_disease <- as.logical(health$heart_disease)
-health$ever_married <- as.logical(health$ever_married)
+head(health)
+```
 
 
-write.csv(health, "data.csv", row.names = T)
 
-table(health$work_type[health$stroke == "TRUE"])
-
+```{r}
+x <- SMOTE(form = stroke ~ ., data = health, perc.over = 10, perc.under = 1)
 ```
 
 
 // testing algorithms
+
+// parameters
+
+// final model
+
+// wrapper
+```{r}
+
+
+
+```
+
+
+
