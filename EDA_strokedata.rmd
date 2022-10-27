@@ -61,7 +61,7 @@ codebook <- read.table("Data/codebook.txt", header = T, sep = ';')
 kable(codebook, format = 'pipe', caption = "Codebook of stroke data")
 ```
 
-The codebook gives a detailed description the columns of the dataset and column content about the value/datatypes. This is necessary to understand the data. 
+The codebook gives a detailed description the columns content about the value/datatypes. This is necessary to understand the data. 
 
 Now that the data is loaded in, there can be looked at the negatives of the data. The biggest flaws are the datatypes of the columns that are not equal. For example: the columns age is the type double instead of integer. The column BMI is character, while a double datatype is much more logical. Also, the columns hypertension and hearth disease are a yes or no question, in these columns  the yes or no is represented by 0 or 1. The columns of marriage history is a yes or no question too, but here yes or no is represented by text. This also needs modifying. 
 
@@ -231,11 +231,11 @@ First the summary of the values numeric values, we have three columns with impor
 pander(summary(health[c(3,9:10)],), caption = "Summary of numeric values")
 ```
 
-Looking at age, the minimum value is 0, which is a bit odd. maybe this is a unknown. Glucose looks normal, but BMI has a very low minimum, which is also odd.
+Looking at age, the minimum value is 0, which is a bit odd. Maybe this is an unknown value. Glucose looks normal, but BMI has a very low minimum, which is also odd.
 
 ## 4.2 Distribution of classifier
 
-The research is about classifying patients changes of stroke based on there lifestyle and health. The figure below is the distribution of the stroke incidents in the data.
+The research is about classifying patients chances of stroke based on there lifestyle and health. The figure below is the distribution of the stroke incidents in the data.
 
 ```{r}
 # Plot stroke distribution
@@ -246,7 +246,7 @@ fig1 <- ggplot(health, aes(x=factor(stroke))) +
 # plot the graph
 fig1 + scale_x_discrete(breaks=c("0", "1"), labels=c("No", "Yes"))
 ```
-The number of stroke in the dataset is very low. the vast majority of the data didn't had a stroke. this needs to be balanced later. 
+The number of stroke in the dataset is very low. The vast majority of the data didn't have a stroke. This needs to be balanced later. 
 
 ## 4.3 Age and gender distribution
 
@@ -263,11 +263,11 @@ Most people are around 40 - 60 years old, with some more females round the 20- 4
 
 ## 4.4 health related variables
 
-This sections tells about the heath related variables such as, smoke, BMI, hypertension, heart disease and glucose levels
+This section tells about the heath related variables such as, smoking habits, BMI, hypertension, heart disease and glucose levels
 
 ### 4.4.1 Smoke
 
-Smoking can affect your health in a bad why, therefore it is good to know how many people (formerly) are smoking.
+Smoking can affect your health in a bad way, therefore it is good to know how many people (formerly) are smoking.
 
 ```{r}
 health %>%
@@ -281,7 +281,7 @@ health %>%
         labs(x = "Smoking status", title = "Smoke status distribution")
 ```
 
-Most of the people never have smoke, but a fairly amount of the people smokes or formerly smoked. This can indicate a bad overall health, which possible can contribute towards strokes. The term smokes is a bit too general, because it says nothing about how much someone smokes on a daily basis. The same applies to formerly smokes.  
+Most of the people never smoked, but a fairly amount of the people smokes or formerly smoked. This can indicate a bad overall health, which possible can contribute towards strokes. The term smokes is a bit too general, because it says nothing about how much someone smokes on a daily basis. The same applies to formerly smoking people.  
 
 
 ### 4.4.2 BMI and Glucose levels
@@ -310,16 +310,16 @@ plot_grid(fig2, fig3, labels = "AUTO", rel_widths = c(1,1))
 ```
 BMI has a sort of normal distribution, with a mean of ~ 28. A BMI between 25 - 30 means overweight and 30+ means obese. Their is a fairy amount of people with a BMI higher than 35 (the blue line). This means that a reasonable amount of people in the dataset is serious overweight. 
 
-For glucose level, the distribution is a little bit right skewed with a bulge toward the end of the x axis. The mean of 106 is high. 99 mg/dL or lower is normal, 100 to 125 mg/dL indicates you have pre diabetes, and 126 mg/dL or higher indicates you have diabetes. The green line represents 99 mg/dL and the blue line 125 mg/dL. These borders shows that, according to the above information. All the people left of the green line are healthy and all the people right of the blue line have diabetes. so, their are some serious unhealty people according to these numbers.
+For glucose level, the distribution is a little bit right skewed with a bulge toward the end of the x axis. The mean of 106 is high. 99 mg/dL or lower is normal, 100 to 125 mg/dL indicates you have pre-diabetes, and 126 mg/dL or higher indicates you have diabetes. The green line represents 99 mg/dL and the blue line 125 mg/dL. These borders shows that, according to the above information. All the people left of the green line are healthy and all the people right of the blue line have diabetes. So, their are some serious unhealty people according to these numbers.
 
 ```{r}
 length(health$id[health$bmi > 35 & health$avg_glucose_level > 125])
 ```
-It tells that with the above information 265 people are serious unhealthy
+It tells that with the above information 265 people are serious unhealthy.
 
 ### 4.4.3 Cardiovascular diseases
 
-There are to cardiovascular diseases in the data, which are heart disease and hypertension.
+There are two cardiovascular diseases in the data, which are heart disease and hypertension.
 
 ```{r}
 fig4 <- ggplot(health, aes(x=factor(hypertension))) + 
@@ -341,7 +341,7 @@ The cardiovascular diseases are both overwhelming no, this is also imbalanced.
 
 ## 4.5 Lifestyle varibles
 
-There are three lifestyle variables: married?, work type and residence type. These variables tells about the persons possible stress level. all these factor can contribute toward stress and possible health affection. 
+There are three lifestyle variables: married?, work type and residence type. These variables tells about the persons possible stress level. All these factors can contribute toward stress and possible health affection. 
 
 ### 4.5.1 Marriage status
 
@@ -353,7 +353,7 @@ ggplot(health, aes(x = ever_married)) +
   scale_x_continuous(breaks = c(0,1), labels = c("No", "yes")) + 
   labs(x = "Marriage status", y = "Count", title = "Marrriage status")
 ```
-As is shown, most people have been married at some point in their lives. The not-married group is a sizeable group with people that have not been married. This maybe could been young people, which would be logic. The code below tests this hypothesis:
+As is shown, most people have been married at some point in their lives. The not-married group is a sizeable group with people that have not been married. This maybe could be young people, which would be logic. The code below tests this hypothesis:
 
 ```{r}
 cat("Mean age of not married: ", round(mean(health$age[health$ever_married == "0"]), 2), '\n')
@@ -462,13 +462,13 @@ round(prop.table(table(health$work_type[health$stroke == T])) * 100, 1)
 ```
 The table overhead tells that the  most stroke events happens by people that are working for a private company 59,8%. To recall the plot of work types earlier, the most people work at private companies, so it is not unexpected that the most stroke events happens by people that work for a private company.
 
-Let's take a look a living area. The living area's are rural or urban. Earlier is said that the mean age of living is not that different. So, the assumption that young people, that mostly life in urban regions, decreases the percentage of strokes events in that living region can be rejected. 
+Let's take a look a living area. The living area's are rural or urban. Earlier is said that the mean age of living is not that different. So, the assumption that young people, that mostly live in urban regions, decreases the percentage of strokes events in that living region can be rejected. 
 
 ```{r}
 round(prop.table(table(health$Residence_type[health$stroke == T])) * 100, 1)
 ```
 
-viewing the percentages above, the most stroke events happens at urban region. With not a big difference between the percentages. Which leave marriage status as the last variable.
+Viewing the percentages above, the most stroke events happens at urban region. With not a big difference between the percentages. Which leave marriage status as the last variable.
 
 The variable ever married indicate if a person is married of have been married at some point in their life. The percentages beneath shows the stroke events by married status. 
 
@@ -485,12 +485,12 @@ ggplot(health[health$stroke == T,], aes(x = age, fill = gender)) +
   labs(x = "Age", y = "Number of stroke events", title = "Age and gender in relation to stroke events" )
 ```
 
-In the distribution above is clearly seen that strokes mostly affects older people, which is expected. The mean age of stroke is 67 years old. Also it is more frequent with female than with male. 
+In the distribution above is clearly seen that strokes mostly affects older people, which is expected. The mean age of stroke is 67 years old. It is also more frequent with female than with male. 
 
 
 # 6. EDA conclusion
 
-The data is in a good condition with several variables to work with for machine learning. The removal of the Na's made the quality of the data better, mainly trough the conversion of the term 'unknown' by smoking status. Also the casting of types helps al lot. The variables does not show in the ED a very big difference in relation with stroke. but the variables age and marriage status shows some hope. But the data is still having one big flaw. 
+The data is in a good condition with several variables to work with for machine learning. The removal of the Na's made the quality of the data better, mainly trough the conversion of the term 'unknown' by smoking status. Also the casting of types helps al lot. The variables does not show in the ED a very big difference in relation with stroke. But the variables age and marriage status shows some hope. But the data is still having one big flaw. 
 
 The plots shows that the distribution of certain variables skewed is, namely: stroke, hypertension and heart_disease. These variable have a very big imbalance inside. This imbalance can cause problems with machine learning because saying 'No' at these variables can give you a 95%+ accuracy. This imbalance need to be tackled before moving on into machine learning. By doing this, the dataset can be workable for machine learning.
 
@@ -530,7 +530,7 @@ Inspecting the four methods above for fixing imbalanced dataset. Synthetic Data 
 
 ### 7.1.2 SMOTE
 
-The SMOTE technique creates a new dataset by oversampling observations from the minority class. Which is excellent for this imbalanced dataset. The easiest way is to use the SMOTE() function from the 'DMwR' package. But, there is a problem with using SMOTE, there are categorical variables and numeric variables. SMOTE works best with numeric data. Luckily, the categorical variables are not big. The biggest is work_type with four labels. The code below convert the variables to numeric, there are seven variables that need changing: 
+The SMOTE technique creates a new dataset by oversampling observations from the minority class. Which is excellent for this imbalanced dataset. The easiest way is to use the SMOTE() function from the 'DMwR' package. But, there is a problem with using SMOTE, there are categorical variables and numeric variables. SMOTE works best with numeric data. Luckily, the categorical variables are not big. The biggest is work_type with four labels. The code below convert the variables to numeric, there are four variables that need changing: 
 
 ```{r}
 # gender
@@ -571,31 +571,83 @@ health$smoking_status[health$smoking_status == "formerly smoked"] <- 1
 health$smoking_status[health$smoking_status == "smokes"] <- 2
 
 health$smoking_status <- as.integer(health$smoking_status)
+
 # relocate classifier
 health <- health %>% relocate(stroke, .after = last_col())
 
 head(health)
 ```
 
-
+Now all the variables are numeric and the classifier is relocated toward the last column. The code below preforms the SMOTE balancing on the dataset. note that SMOTE tent to calculate decimal values of variables with 1 - 4. therefore smoking_status and work_type is converted to factor to tackle this problem. Also the classifier is slightly modified to grow more towards SMOTE's preferences. 
 
 ```{r}
-x <- SMOTE(form = stroke ~ ., data = health, perc.over = 10, perc.under = 1)
+# changes certain variables to factor to prevent problems 
+health$smoking_status <- as.factor(health$smoking_status)
+health$work_type <- as.factor(health$work_type)
+
+# change classifier to factor with boolean labels 
+health$stroke <- as.numeric(health$stroke)
+health$stroke[health$stroke == 0] <- "FALSE"
+health$stroke[health$stroke == 1] <- "TRUE"
+health$stroke <- as.factor(health$stroke)
+
+# write pre-SMOTE data to csv
+write.csv(health, "health.csv")
+
+
+# preform SMOTE on data
+x <- SMOTE(form = stroke ~ ., data = health, perc.over = 3000, perc.under = 150)
+
+# write SMOTE data to csv.
+write.csv(x = x, file = "SMOTEdata.csv")
 ```
 
+The result are two dataset, one without SMOTE and one with SMOTE applied. The SMOTE data has a perc.over of 3000 and a perc.under of 150. Which means that the minority class is synthetic oversampled by 3000% and the majority class synthetic oversampled is by 150%. This creates a ratio of 60/40 instead of 95/5
 
-// testing algorithms
+# 7.2 Testing algorithms
+
+We ended up with two datasets.One with the imbalance and one with the imbalanced SMOTE'd out. These two dataset will be tested on accuracy to determine which dataset is most suitable to proceed with. Also, With a too high accuracy overfitting might occur. Overfitting is getting a very high accuracy(> 95%) form an algorithm which is too precise. For example, we speak of overfitting when a tree algorithm creates a tree of 457 nodes and gets a accuracy of 98,9%. It works excellent on the handed data, and only on that data. So, a extremely high accuracy on the data in not necessarily good. 
+
+Weka self offers a handful of filters and tools. One of this tools is 'ClassBalancer'. It reweights the instances in the data so that each class has the same total weight. This form of balancing will be applied on the imbalanced data, Which makes the datasets to test a total of three. Normal, Normal with classbalancer and SMOTE modified data.
+
+there will be eight algorithms tested:
+
+- ZeroR
+- OneR
+- J48
+- Random Forest
+- NaiveBayes
+- Simple Logistic
+- Logistic
+- Sequential minimal optimization(SMO)
+
+The results are tabled below accuracies, all algorithms are executed on default options.
+
+```{r}
+algo_accuracies <- read.table("Data/accuracies.txt", sep = ",", header = T)
+colnames(algo_accuracies) <- c("Type of algorithm", "Normal", "Normal (classBalancer)", "SMOTE")
+kable(algo_accuracies, format = "simple", caption = "Accuracies of different algorithms")
+```
+
+In the table is seen that the normal imbalanced dataset almost always has an accuracy of 95%. This is because the imbalance in the dataset is equal to 95/5. So, the algorithm deals with this by saying that almost everything is false. In 95% of the cases, that is correct. As earlier concluded, the dataset with the imbalance is not good.
+
+Looking at the dataset with the ClassBalance filter. The accuracies are reasonable balanced, with the bayes and function algorithms getting +70% accuracies. But the way how the ClassBalance filter acts is questionable. To put it simply, records form the minority are duplicated to achieve a 50/50 ratio and random duplication is not desirable. 
+
+The SMOTE dataset has a couple of overfitted accuracies, but the logistics and bayes preforms well. The way that created the extra records is also more desirable that the ClassBalance filter. So, The SMOTE dataset is the one to go with in the next section of the ML phase.
+
+
+
 
 // parameters
+
+// significant?
 
 // final model
 
 // wrapper
+
+
 ```{r}
 
-
-
 ```
-
-
 
