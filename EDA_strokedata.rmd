@@ -501,6 +501,8 @@ The Goal in the machine learning project is to predict a chance of a stroke even
 
 For the machine learning (ML) a program named Weka will be used. Weka is a collection of machine learning algorithms for data mining tasks. It contains tools for data preparation, classification, regression, clustering, association rules mining, and visualization. In this analysis Weka version 3.9.6 is used. 
 
+In the section below the word accuracy is many times being said. In this experiment *accuracy means the precision of the ML algorithm in which it can rightly predict the chance of a stroke label.* So, an accuracy of 70% means that ,based on the inputted values of that person, there is a 70% chance that a persons stroke history is right. In other words if the output is true, you're likely to get a stroke in the near future. 
+
 
 ## 7.1 Dataset changing 
 
@@ -578,12 +580,20 @@ health <- health %>% relocate(stroke, .after = last_col())
 head(health)
 ```
 
-Now all the variables are numeric and the classifier is relocated toward the last column. The code below preforms the SMOTE balancing on the dataset. note that SMOTE tent to calculate decimal values of variables with 1 - 4. therefore smoking_status and work_type is converted to factor to tackle this problem. Also the classifier is slightly modified to grow more towards SMOTE's preferences. 
+Now all the variables are numeric and the classifier is relocated toward the last column. The code below preforms the SMOTE balancing on the dataset. note that SMOTE tent to calculate decimal values of variables with 1 - 4. therefore smoking_status, work_type, is_male?, living_urban and ever_married is converted to factor to tackle this problem. Also the classifier is slightly modified to grow more towards SMOTE's preferences. 
 
 ```{r}
 # changes certain variables to factor to prevent problems 
 health$smoking_status <- as.factor(health$smoking_status)
 health$work_type <- as.factor(health$work_type)
+health$`is_Male?` <- as.factor(health$`is_Male?`)
+health$`living_urban?` <- as.factor(health$`living_urban?`)
+health$ever_married <- as.factor(health$ever_married)
+health$age <- as.factor(health$age)
+health$avg_glucose_level <- as.factor(health$avg_glucose_level)
+health$bmi <- as.factor(health$bmi)
+health$hypertension <- as.factor(health$hypertension)
+health$heart_disease <- as.factor(health$heart_disease)
 
 # change classifier to factor with boolean labels 
 health$stroke <- as.numeric(health$stroke)
@@ -592,19 +602,19 @@ health$stroke[health$stroke == 1] <- "TRUE"
 health$stroke <- as.factor(health$stroke)
 
 # write pre-SMOTE data to csv
-write.csv(health, "health.csv")
+write.csv(health, "Data/health.csv")
 
 
 # preform SMOTE on data
 x <- SMOTE(form = stroke ~ ., data = health, perc.over = 3000, perc.under = 150)
 
 # write SMOTE data to csv.
-write.csv(x = x, file = "SMOTEdata.csv")
+write.csv(x = x, file = "Data/SMOTEdata.csv")
 ```
 
 The result are two dataset, one without SMOTE and one with SMOTE applied. The SMOTE data has a perc.over of 3000 and a perc.under of 150. Which means that the minority class is synthetic oversampled by 3000% and the majority class synthetic oversampled is by 150%. This creates a ratio of 60/40 instead of 95/5
 
-# 7.2 Testing algorithms
+## 7.2 Testing algorithms
 
 We ended up with two datasets.One with the imbalance and one with the imbalanced SMOTE'd out. These two dataset will be tested on accuracy to determine which dataset is most suitable to proceed with. Also, With a too high accuracy overfitting might occur. Overfitting is getting a very high accuracy(> 95%) form an algorithm which is too precise. For example, we speak of overfitting when a tree algorithm creates a tree of 457 nodes and gets a accuracy of 98,9%. It works excellent on the handed data, and only on that data. So, a extremely high accuracy on the data in not necessarily good. 
 
@@ -636,9 +646,66 @@ Looking at the dataset with the ClassBalance filter. The accuracies are reasonab
 The SMOTE dataset has a couple of overfitted accuracies, but the logistics and bayes preforms well. The way that created the extra records is also more desirable that the ClassBalance filter. So, The SMOTE dataset is the one to go with in the next section of the ML phase.
 
 
+## 7.3 Choosing Alogrithm
+
+Choosing the right algorithm is a crucial aspect to proceed. Beforehand it is important to know, what makes algorithm 'good'? What are the characteristics of a desirable algorithm. For this question some quality metrics are determined. 
+
+Example of different quality metrics:
+
+- accuracy 
+- speed
+- size of tree*
+- Confusion matrix
 
 
-// parameters
+Obviously a high accuracy is desired by all means. Then the question is, how accurate is good enough? As base, a accuracy of 90% is considered good. with diseases like strokes, 80% is not good enough. Which means that one in five is classified wrong, which can have serious consequences. Also, How is this accuracy achieved? Look out for overfitting.
+
+Speed of the algorithm is important by big usage. Implementing the model in a local environment, 1 to 2 minutes is okay. As it would not calculate more than 10 times a day. But in big scale usage, an fast algorithm is a demand. 
+
+In case of a tree, the size of a Decision tree is a important factor. With a large tree with many leave, overfitting could be possible. As the algorithm is to specific on the trainings set. A small, but accurate tree is desirable. 
+
+A confusion matrix, is a specific table that allows visualization of the performance of an algorithm. Each row of the matrix represents the instances in an actual class while each column represents the instances in a predicted class. This indicates also the rate of true positives, true negatives, false positives and false negatives. The errors in the matrix will weight heavy on the model performance.
+
+In conclusion: accuracy, confusion matrix and size of tree will weight the heaviest in selecting a good algorithm. 
+
+## 7.3.1 Baseline
+
+With a proper dataset and determined quality metrics,the 'SMOTEdata.csv' file is loaded into Weka. The first two rows are removed, the blank attribute and ID. In the edit viewer, the Attributes are quickly visual scanned, to see if all the labels says numeric,except the classifier.  
+
+In The test options, cross-validation is set to 10 Folds (default). First a baseline performance is set (ZeroR).
+
+TP = True positive rate
+FP = False positive rate
+
+```{r}
+baseline <- read.csv("Data/zeroR_weka.csv", sep = ";", header = TRUE)
+colnames(baseline)[1] <- "Algorithm ->"
+pander(baseline, caption = "ZeroR mesurement")
+```
+
+ZeroR is a very simple algorithm that looks only at the classifier, in this case there are 11205 instances False, and 7719 True. ZeroR takes the majority and uses that for its accuracy, in this case 59,2%. SO, it is known that the baseline is 59,2%. This is the Zero measurement. 
+
+## 7.3.2 Advanced algorithms
+
+Now that the baseline is determined, it is time for testing more complex algorithms. Earlier for comparison between normal and SMOTE data a couple of algorithms already were tested on default settings. This time speed, TP and FP also added.
+
+```{r}
+advanced_algo <- read.csv("Data/advanced_weka.csv", sep = ";", header = T)
+colnames(advanced_algo)[1] <- "Algorithms ->"
+kable(advanced_algo, caption = "Advanced algorithms")
+```
+
+Looking at the table above, their are three algorithms with accuracy >95% and four algorithms with accuracies around the 75%. Most algorithms are fast, with the exception of Random forest and SMO. Especialy SMO is slow. The high scoring algorithms are have a low FP rate by True and False. The lower scoring algorithms have a more divided spread of TP and FP rates. 
+
+On paper, their are three excellent algorithms, but they are likely infected with (a form of) overfitting. The size of the J48 tree says enough. Next is it logic to look into parameters to reduce the amount of overfitting on the three algorithms. 
+
+//test oneR, j48, randomforest options
+
+
+j48 lineplot minnumobj
+random forest werkt goed, betrouwbaar?
+oneR?
+
 
 // significant?
 
@@ -647,7 +714,4 @@ The SMOTE dataset has a couple of overfitted accuracies, but the logistics and b
 // wrapper
 
 
-```{r}
-
-```
 
