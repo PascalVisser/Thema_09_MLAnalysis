@@ -580,7 +580,7 @@ health <- health %>% relocate(stroke, .after = last_col())
 head(health)
 ```
 
-Now all the variables are numeric and the classifier is relocated toward the last column. The code below preforms the SMOTE balancing on the dataset. note that SMOTE tent to calculate decimal values of variables with 1 - 4. therefore smoking_status, work_type, is_male?, living_urban and ever_married is converted to factor to tackle this problem. Also the classifier is slightly modified to grow more towards SMOTE's preferences. 
+Now all the variables are numeric and the classifier is relocated toward the last column. The code below preforms the SMOTE balancing on the dataset. note that SMOTE tent to calculate decimal values of variables with 1 - 4. therefore all values are converted to factors to tackle this problem. Also the classifier is slightly modified to grow more towards SMOTE's preferences. 
 
 ```{r}
 # changes certain variables to factor to prevent problems 
@@ -589,6 +589,11 @@ health$work_type <- as.factor(health$work_type)
 health$`is_Male?` <- as.factor(health$`is_Male?`)
 health$`living_urban?` <- as.factor(health$`living_urban?`)
 health$ever_married <- as.factor(health$ever_married)
+health$age <- as.factor(health$age)
+health$avg_glucose_level <- as.factor(health$avg_glucose_level)
+health$bmi <- as.factor(health$bmi)
+health$hypertension <- as.factor(health$hypertension)
+health$heart_disease <- as.factor(health$heart_disease)
 
 # change classifier to factor with boolean labels 
 health$stroke <- as.numeric(health$stroke)
@@ -626,7 +631,7 @@ there will be eight algorithms tested:
 - Logistic
 - Sequential minimal optimization(SMO)
 
-The results are tabled below accuracies, all algorithms are executed on default options.
+The results are tabled below accuracies, all algorithms are executed on default options, and with 10-fold cross validation
 
 ```{r}
 algo_accuracies <- read.table("Data/accuracies.txt", sep = ",", header = T)
@@ -638,7 +643,7 @@ In the table is seen that the normal imbalanced dataset almost always has an acc
 
 Looking at the dataset with the ClassBalance filter. The accuracies are reasonable balanced, with the bayes and function algorithms getting +70% accuracies. But the way how the ClassBalance filter acts is questionable. To put it simply, records form the minority are duplicated to achieve a 50/50 ratio and random duplication is not desirable. 
 
-The SMOTE dataset has a couple of overfitted accuracies, but the logistics and bayes preforms well. The way that created the extra records is also more desirable that the ClassBalance filter. So, The SMOTE dataset is the one to go with in the next section of the ML phase.
+The SMOTE dataset has a couple of overfitted accuracies, but the logistics algorithms and bayes preforms well. The way that created the extra records is also more desirable that the ClassBalance filter. So, The SMOTE dataset is the one to go with in the next section of the ML phase.
 
 
 ## 7.3 Choosing Alogrithm
@@ -663,7 +668,7 @@ A confusion matrix, is a specific table that allows visualization of the perform
 
 In conclusion: accuracy, confusion matrix and size of tree will weight the heaviest in selecting a good algorithm. 
 
-## 7.3.1 Baseline
+### 7.3.1 Baseline
 
 With a proper dataset and determined quality metrics,the 'SMOTEdata.csv' file is loaded into Weka. The first two rows are removed, the blank attribute and ID. In the edit viewer, the Attributes are quickly visual scanned, to see if all the labels says numeric,except the classifier.  
 
@@ -680,7 +685,7 @@ pander(baseline, caption = "ZeroR mesurement")
 
 ZeroR is a very simple algorithm that looks only at the classifier, in this case there are 11205 instances False, and 7719 True. ZeroR takes the majority and uses that for its accuracy, in this case 59,2%. SO, it is known that the baseline is 59,2%. This is the Zero measurement. 
 
-## 7.3.2 Advanced algorithms
+### 7.3.2 Advanced algorithms
 
 Now that the baseline is determined, it is time for testing more complex algorithms. Earlier for comparison between normal and SMOTE data a couple of algorithms already were tested on default settings. This time speed, TP and FP also added.
 
@@ -690,16 +695,87 @@ colnames(advanced_algo)[1] <- "Algorithms ->"
 kable(advanced_algo, caption = "Advanced algorithms")
 ```
 
+Looking at the table above, their are three algorithms with accuracy >90% and four algorithms with accuracies around the 80%. Most algorithms are fast, with the exception of SMO. Especialy SMO is slow. The high scoring algorithms are have a low FP rate by True and False. The lower scoring algorithms have a more divided spread of TP and FP rates. 
+
+On paper, their are three excellent algorithms, but they are likely infected with (a form of) overfitting. The size of the J48 tree says enough. Next is it logic to look into parameters to reduce the amount of overfitting on the algorithms. 
+
+### 7.3.3 Ensemble learners
+
+While the advanced algorithms look good, there are also meta (ensemble) learners. The main purpose of using an ensemble model is to group a set of weak learners and form a strong learner. Random forest is a example of a meta learner. It uses bagging (which is explained later) and feature randomness when building each individual tree to try to create an uncorrelated forest of trees whose prediction by committee is more accurate than that of any individual tree.
+
+There are 3 meta learners that will be tested: Bagging, AdaBoostM1 and stacking.
+
+- Bagging is a technique for reducing prediction variance by producing additional data for training from a dataset by combining repetitions with     combinations to create multi-sets of the original data.
+
+- AdaBoostM1
+
+*Stacking*
 
 
+## 7.4 Reduce overfitting with parameters 
 
-// parameters
+OneR is better than ZeroR, but still too simple to be usable. So, We drop OneR as a choice. A popular choice is j48, because of its many parameters to fiddle with.
+
+*J48*
+
+There are a number of parameters to play with. Two parameters (to tackle the overfitting) are the most important: confidenceFactor and minNumObj. This determines how aggressive the pruning process will be. The higher this value, the more ‘confident’ you are that the data you are learning from is a good representation of all possible events, and therefore the less pruning that will occur. Smaller values induce more pruning. The minNumObj determines the minimum observations that are allowed at each leaf of the tree. How higher this number, how more 'strict' the leafs are. 
+
+So, With a low confidence factor and a low minimum number of objects the tree can go its own way. It can split on decimal values many times and possible overfit enormously, like at default. The graph below shows the accuracy in relation to a bigger number of objects. 
+
+```{r}
+accuracy <- c(91.0,90.2,88.5,86.8,84.5,84.1,83.4,83.2,83.2,83.3,83.1,82.8)
+minNumObj <- c(1,2,4,8,20,40,60,80,100,150,200,250)
+
+x <- as.data.frame(x = accuracy)
+x$minNumObj <- minNumObj
+
+ggplot(x, aes(x = minNumObj, y = accuracy)) + geom_line(color = "blue", lwd = 1) + geom_vline(xintercept = 50, col= "red") + labs(x = "Minimun number of objects", y = "Accuarcy (%)", title = "Accuracy J48 in relation to minNumObj parameter")
+```
+In the graph above, it is clearly seen that the minimal number of objects affects the accuracy in a way. The higher the minimum of objects, the lower the accuracy goes. But, after a minimum of 50 objects, the accuracy is more stable in relation to its minimum objects. So, 50 seems to be the sweet spot. Next, the confidence factor is tested in combination with minNumObj of 50.
+
+```{r}
+confi_values <- c(0.01, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50)
+acc_values <- c(84.1, 84.3, 84.3, 84.1, 84.3, 84.3, 84.3)
+size_of_tree <- c(35, 45, 45, 58, 58, 73, 77)
+
+x <- as.data.frame(confi_values)
+x$acc_values <- acc_values
+x$sizeOfTree <- size_of_tree
+
+
+ggplot(x, aes(x = confi_values, y = acc_values)) + geom_line(aes(color=sizeOfTree), lwd = 3) + labs(y = "Accuracy (%)", x = "Confidence factor", title = "J48 confidence factor difference with minNumObj = 50")
+```
+The line plot above tells that there is not many difference with a high or low confidence factor. Noticeable is that the size of the tree grows with a higher confidence factor. It is not desirable to have a big complex tree with no usable accuracy gain. So, the verdict is that an optimal tree has a minNumObj of 50, confidence factor of 0.01. by these parameter the size of the tree is 35. which is not to simple nor complex. Which gives an accuracy of *84.13%*
+
+*Random forest*
+
+The random forest gives a base accuracy of 95.6%, which is really high. But, is it high because it is good or because is it overfitted? To test this there are a couple of parameters to play with, maxDepth and numIterations. Especially maxDepth is important. This determines how 'deep' the tree may go. The default is 0, which means unlimited. This unlimited depth causes complex overfitted trees, which get high accuracies. So, by limiting its depth, the accuracy gets more reliable. the graph underneath, looks at the effect on accuracy with different maxDepth.
+
+```{r}
+depth <- c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20)
+accuracy <- c(78.7, 81.9, 82.5, 82.9, 83.3, 83.7, 84.6, 85.5, 86.8, 88.2, 89.7, 91.4, 92.6, 93.6, 94.5, 95.1, 95.4, 95.6, 95.6 , 95.6)
+
+x <- as.data.frame(depth)
+x$accuracy <- accuracy
+
+ggplot(x, aes(x = depth, y = accuracy)) + geom_line(lwd = 2) + labs(x = "Maximun depth of tree", y = "Accuracy (%)", title = "RandomForest Effect of maxDepth parameter on Accuracy") + geom_hline(yintercept = 84.6, col = 'darkred') + geom_vline(xintercept = 7, col = 'darkred')
+
+```
+
+The accuracy increases slowly with each higher depth level. After a depth of 15, it flattens out around the 95% mark. To tackle overfitting, a low depth is desirable, but a depth of 2 gives 'low' accuracies. but a too high depth creates overfitting problems. So, we take a depth of 7. Not too low and not too high. A depth of 7 gives a accuracy of *84.6%*
+
+## 7.5 Explore Meta learners
+
+With J48 and Random forest some good accuracies are achieved. But there are also a couple of special algorithms called meta learners 
+
 
 // significant?
 
+// roc curve
+
 // final model
 
-// wrapper
+
 
 
 
