@@ -27,6 +27,7 @@ library(pander)
 library(cowplot)
 library(dplyr)
 library(DMwR)
+library(gridExtra)
 ```
 
 
@@ -46,7 +47,7 @@ First the data is loaded in:
 
 ```{r}
 # load in the data
-strokedata <- read.csv("Data/Stroke_dataset.csv", header = T)
+strokedata <- read.csv("../Data/Stroke_dataset.csv", header = T)
 kable(strokedata[1:6, 1:6], format = 'simple', caption = "Head of data")
 cat("The dataset is", dim(strokedata)[1], "rows long, and has", dim(strokedata)[2], "columns")
 ```
@@ -57,7 +58,7 @@ The codebook will be loaded in:
 ```{r warning=FALSE}
 
 # load codebook
-codebook <- read.table("Data/codebook.txt", header = T, sep = ';')
+codebook <- read.table("../Data/codebook.txt", header = T, sep = ';')
 kable(codebook, format = 'pipe', caption = "Codebook of stroke data")
 ```
 
@@ -501,7 +502,7 @@ The Goal in the machine learning project is to predict a chance of a stroke even
 
 For the machine learning (ML) a program named Weka will be used. Weka is a collection of machine learning algorithms for data mining tasks. It contains tools for data preparation, classification, regression, clustering, association rules mining, and visualization. In this analysis Weka version 3.9.6 is used. 
 
-In the section below the word accuracy is many times being said. In this experiment *accuracy means the precision of the ML algorithm in which it can rightly predict the chance of a stroke label.* So, an accuracy of 70% means that ,based on the inputted values of that person, there is a 70% chance that a persons stroke history is right. In other words if the output is true, you're likely to get a stroke in the near future. 
+In the section below the word accuracy is many times being said. In this experiment **accuracy means the precision of the ML algorithm in which it can rightly predict the chance of a stroke label.** So, an accuracy of 70% means that ,based on the inputted values of that person, there is a 70% chance that a persons stroke history is right. In other words if the output is true, you're likely to get a stroke in the near future. 
 
 
 ## 7.1 Dataset changing 
@@ -602,21 +603,21 @@ health$stroke[health$stroke == 1] <- "TRUE"
 health$stroke <- as.factor(health$stroke)
 
 # write pre-SMOTE data to csv
-write.csv(health, "Data/health.csv")
+write.csv(health, "../Data/health.csv")
 
 
 # preform SMOTE on data
 x <- SMOTE(form = stroke ~ ., data = health, perc.over = 3000, perc.under = 150)
 
 # write SMOTE data to csv.
-write.csv(x = x, file = "Data/SMOTEdata.csv")
+write.csv(x = x, file = "../Data/SMOTEdata.csv")
 ```
 
 The result are two dataset, one without SMOTE and one with SMOTE applied. The SMOTE data has a perc.over of 3000 and a perc.under of 150. Which means that the minority class is synthetic oversampled by 3000% and the majority class synthetic oversampled is by 150%. This creates a ratio of 60/40 instead of 95/5
 
 ## 7.2 Testing algorithms
 
-We ended up with two datasets.One with the imbalance and one with the imbalanced SMOTE'd out. These two dataset will be tested on accuracy to determine which dataset is most suitable to proceed with. Also, With a too high accuracy overfitting might occur. Overfitting is getting a very high accuracy(> 95%) form an algorithm which is too precise. For example, we speak of overfitting when a tree algorithm creates a tree of 457 nodes and gets a accuracy of 98,9%. It works excellent on the handed data, and only on that data. So, a extremely high accuracy on the data in not necessarily good. 
+We ended up with two datasets. One with the imbalance and one with the imbalanced SMOTE'd out. These two dataset will be tested on accuracy to determine which dataset is most suitable to proceed with. Also, With a too high accuracy overfitting might occur. Overfitting is getting a very high accuracy(> 95%) form an algorithm which is too precise. For example, we speak of overfitting when a tree algorithm creates a tree of 457 nodes and gets a accuracy of 98,9%. It works excellent on the handed data, and only on that data. So, a extremely high accuracy on the data in not necessarily good. 
 
 Weka self offers a handful of filters and tools. One of this tools is 'ClassBalancer'. It reweights the instances in the data so that each class has the same total weight. This form of balancing will be applied on the imbalanced data, Which makes the datasets to test a total of three. Normal, Normal with classbalancer and SMOTE modified data.
 
@@ -631,10 +632,12 @@ there will be eight algorithms tested:
 - Logistic
 - Sequential minimal optimization(SMO)
 
-The results are tabled below accuracies, all algorithms are executed on default options, and with 10-fold cross validation
+The results are tabled below accuracies, all algorithms are executed on default options, and with 10-fold cross validation.
+
+**All algorithm tests that are executed are with 10-fold cross validation**
 
 ```{r}
-algo_accuracies <- read.table("Data/accuracies.txt", sep = ",", header = T)
+algo_accuracies <- read.table("../Data/accuracies.txt", sep = ",", header = T)
 colnames(algo_accuracies) <- c("Type of algorithm", "Normal", "Normal (classBalancer)", "SMOTE")
 kable(algo_accuracies, format = "simple", caption = "Accuracies of different algorithms")
 ```
@@ -678,7 +681,7 @@ TP = True positive rate
 FP = False positive rate
 
 ```{r}
-baseline <- read.csv("Data/zeroR_weka.csv", sep = ";", header = TRUE)
+baseline <- read.csv("../Data/zeroR_weka.csv", sep = ";", header = TRUE)
 colnames(baseline)[1] <- "Algorithm ->"
 pander(baseline, caption = "ZeroR mesurement")
 ```
@@ -690,7 +693,7 @@ ZeroR is a very simple algorithm that looks only at the classifier, in this case
 Now that the baseline is determined, it is time for testing more complex algorithms. Earlier for comparison between normal and SMOTE data a couple of algorithms already were tested on default settings. This time speed, TP and FP also added.
 
 ```{r}
-advanced_algo <- read.csv("Data/advanced_weka.csv", sep = ";", header = T)
+advanced_algo <- read.csv("../Data/advanced_weka.csv", sep = ";", header = T)
 colnames(advanced_algo)[1] <- "Algorithms ->"
 kable(advanced_algo, caption = "Advanced algorithms")
 ```
@@ -701,20 +704,31 @@ On paper, their are three excellent algorithms, but they are likely infected wit
 
 ### 7.3.3 Ensemble learners
 
-While the advanced algorithms look good, there are also meta (ensemble) learners. The main purpose of using an ensemble model is to group a set of weak learners and form a strong learner. Random forest is a example of a meta learner. It uses bagging (which is explained later) and feature randomness when building each individual tree to try to create an uncorrelated forest of trees whose prediction by committee is more accurate than that of any individual tree.
+While the advanced algorithms look good, there are also ensemble learners. The main purpose of these is using an ensemble model to use a group of weak learners and form a strong learner. Random forest is a example of a ensemble learner. It uses bagging (which is explained later) and feature randomness when building each individual tree to try to create an uncorrelated forest of trees whose prediction by committee is more accurate than that of any individual tree.
 
-There are 3 meta learners that will be tested: Bagging, AdaBoostM1 and stacking.
+There are 3 ensemble learners that will be tested: Bagging, AdaBoostM1 and stacking.
 
 - Bagging is a technique for reducing prediction variance by producing additional data for training from a dataset by combining repetitions with     combinations to create multi-sets of the original data.
 
-- AdaBoostM1
+- AdaBoostM1 or adaptive boosting is a ensemble learner that combines weak learners and weights their output into a weighted sum. This sum is used to tweak the algorithms to create a acurate output.
 
-*Stacking*
+- Stacking involves training a learning algorithm to combine the predictions of several other learning algorithms. 
 
+The algorithms that are used by stacking are: ZeroR, OneR, J48, RandomForest, NaiveBayes, SimpleLogistic, Logistic and SMO. Especially SMO makes the algorithm very slow 
 
-## 7.4 Reduce overfitting with parameters 
+```{r}
+ensemble <- read.csv("../Data/ensemble_weka.csv", sep = ";", header = TRUE)
+colnames(ensemble)[1] <- "Algorithm ->"
+pander(ensemble, caption = "ensemble learners")
+```
 
-OneR is better than ZeroR, but still too simple to be usable. So, We drop OneR as a choice. A popular choice is j48, because of its many parameters to fiddle with.
+Bagging produces a fast and high accuracy output,  which seem promising. AdaBosstM1 creates are even faster algorithm, but it is not as high as bagging. Stacking is just awful. It took nearly 45 minutes to complete the cross validation and it produces 59,2%...
+
+So, in this case bagging seems great.
+
+## 7.4 Parameter optimization
+
+With the above tests, there are three algorithms that at default are already good: J48, Random forest and bagging. In this section these algorithms are optimized by tweaking the parameters. 
 
 *J48*
 
@@ -745,7 +759,7 @@ x$sizeOfTree <- size_of_tree
 
 ggplot(x, aes(x = confi_values, y = acc_values)) + geom_line(aes(color=sizeOfTree), lwd = 3) + labs(y = "Accuracy (%)", x = "Confidence factor", title = "J48 confidence factor difference with minNumObj = 50")
 ```
-The line plot above tells that there is not many difference with a high or low confidence factor. Noticeable is that the size of the tree grows with a higher confidence factor. It is not desirable to have a big complex tree with no usable accuracy gain. So, the verdict is that an optimal tree has a minNumObj of 50, confidence factor of 0.01. by these parameter the size of the tree is 35. which is not to simple nor complex. Which gives an accuracy of *84.13%*
+The line plot above tells that there is not many difference with a high or low confidence factor. Noticeable is that the size of the tree grows with a higher confidence factor. It is not desirable to have a big complex tree with no usable accuracy gain. So, the verdict is that an optimal tree has a minNumObj of 50, confidence factor of 0.01. by these parameter the size of the tree is 35. which is not to simple nor complex. Which gives an accuracy of **84.13%**
 
 *Random forest*
 
@@ -762,14 +776,59 @@ ggplot(x, aes(x = depth, y = accuracy)) + geom_line(lwd = 2) + labs(x = "Maximun
 
 ```
 
-The accuracy increases slowly with each higher depth level. After a depth of 15, it flattens out around the 95% mark. To tackle overfitting, a low depth is desirable, but a depth of 2 gives 'low' accuracies. but a too high depth creates overfitting problems. So, we take a depth of 7. Not too low and not too high. A depth of 7 gives a accuracy of *84.6%*
+The accuracy increases slowly with each higher depth level. After a depth of 15, it flattens out around the 95% mark. To tackle overfitting, a low depth is desirable, but a depth of 2 gives 'low' accuracies. but a too high depth creates overfitting problems. So, we take a depth of 7. Not too low and not too high. A depth of 7 gives a accuracy of **84.6%**
 
-## 7.5 Explore Meta learners
+*Bagging*
 
-With J48 and Random forest some good accuracies are achieved. But there are also a couple of special algorithms called meta learners 
+Bagging or **B**ootstrap **agg**regat**ing** is a ensamble model to improve stability and accuracy of combined machine learning algorithms. It also reduces variance and helps avoid overfitting. The preventing of overfitting is great in this experiment. The Bagging model has a couple of parameter to tweak, but the most impacting is numIteration. The number of iterartions the model preforms. The default is 10. Which earlier gave an accuracy of 91,5%. But more iteration means that it will be slower. So, the time to build a model will also be noted.
 
 
-// significant?
+```{r}
+numOfIters <- c(1,10,20,30,40,50,60,70,80,90,100)
+accuracy <- c(87.2, 91.4, 91.5, 92.0, 91.9, 92.0, 92.0, 92.0, 92.0, 92.0, 92.0)
+timeModel <-c(0.08, 0.81, 1.61, 2.29, 3.04, 3.65, 4.46, 5.24, 6.09, 6.79, 7.51)
+
+x <- as.data.frame(numOfIters)
+x$accuracy <- accuracy
+x$timeModel <- timeModel
+
+plot1 <- ggplot(x, aes(x = numOfIters, y = accuracy)) + geom_line(lwd = 1.5) + labs(x = "Number of Iterations", y = "Accuracy (%)", title = "Accuracy vs number of iterations")
+
+plot2 <- ggplot(x, aes(x = numOfIters, y = timeModel)) + geom_line(lwd = 1.5) + labs(x = "Number of Iterations", y = "Speed (seconds)", title = "Time vs number of iterations")
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+Looking at the graphs above, at +- 30 iterations it flattens out. There is no more gain after that. The down side is that, the more iteration the longer it takes to finish. Remember that after the model build it executes a 10-fold cross validation, which takes time. 
+
+The optimal number of iterations is around 30, where it peaks in accuracy and only takes 2.29 seconds to build a model. Fast and accurate. Which gives a accuracy of **92.0%**
+
+
+## 7.5 Verdict
+
+After parameter optimization, there are three accuracies of three models: J48 with 84.13%, RandomForest with 84.6% and Bagging with 92%. 
+
+```{r}
+algoName <- c("ZeroR", "J48", "RandomForest", "Bagging")
+acc <- c(59.2, 84.13, 84.6, 92.0)
+timealgo <- c(0.01, 0.26, 1.12, 2.29)
+
+x <- as.data.frame(algoName)
+x$acc <- acc
+x$timealgo <- timealgo
+
+ggplot(x, aes(x = acc, y = algoName)) + geom_bar(stat = 'identity', fill = c("darkred", "steelblue1", "steelblue1", "springgreen3")) + 
+  geom_text(aes(label = timealgo), position = position_dodge(width = 0.9), hjust = 1.5, color = 'white') +
+  labs(x = "Accuracy (%)", y = "Name of algorithm", title = "Performance selected algorithms") +
+  annotate(x = 75, y = 4, geom = "text", label = " <--- Model build time")
+```
+Their is seen that Bagging preforms the overall best, it is to 'slowest' of the 4 but still fast enough for not heavy usage. If we recall the quality metrics: The demand was a high scoring algorithm that also was fast. A good confusion matrix was also desirable. 
+
+// confusion matrix
+
+t tp = 92
+t fp = 2,6
+f tp = 97,4
+f fp = 8 
 
 // roc curve
 
