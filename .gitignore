@@ -84,6 +84,7 @@ replay_pid*
 
 ### Gradle ###
 .gradle
+gradle
 gradlew
 gradlew.bat
 .idea
