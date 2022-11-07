@@ -1,6 +1,6 @@
 ---
 title: "Exploratory Data Analysis (for) Stroke Data Set"
-author: "Pascal Visser"
+author: "Pascal Visser, 410729"
 date: "2022-09-14"
 output:
   pdf_document: 
@@ -9,13 +9,12 @@ output:
   
 ---
 
-```{r setup, include=FALSE}
+```{r Setup, include=FALSE }
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Loading libraries
 
-```{r warning=FALSE, message=FALSE}
+```{r Libraries, warning=FALSE, message=FALSE}
 # load libraries
 library(tidyverse)
 library(naniar)
@@ -28,6 +27,7 @@ library(cowplot)
 library(dplyr)
 library(DMwR)
 library(gridExtra)
+library(farff)
 ```
 
 
@@ -45,9 +45,11 @@ This dataset consists of people that had a stroke and people that have not. The 
 The data is as said, lifestyle information of people with stroke history or not. In this section the data will be talked trough and the variables explained.
 First the data is loaded in:
 
-```{r}
+```{r Read data}
 # load in the data
 strokedata <- read.csv("../Data/Stroke_dataset.csv", header = T)
+
+# visualize
 kable(strokedata[1:6, 1:6], format = 'simple', caption = "Head of data")
 cat("The dataset is", dim(strokedata)[1], "rows long, and has", dim(strokedata)[2], "columns")
 ```
@@ -55,7 +57,7 @@ cat("The dataset is", dim(strokedata)[1], "rows long, and has", dim(strokedata)[
 Above, the first six rows of the data are shown. Also is given how many records there are. The codebook will clarify the variables and their values.
 The codebook will be loaded in:
 
-```{r warning=FALSE}
+```{r Load codebook, warning=FALSE}
 
 # load codebook
 codebook <- read.table("../Data/codebook.txt", header = T, sep = ';')
@@ -70,7 +72,7 @@ The character variables are can be converted to factor classes.
 
 Additionally, it's good to know how many NA's are present in the dataset. These missing values can screw the data. Also, values like 'unknown' can be declared as a missing value
 
-```{r}
+```{r Unique values}
 # check unique values of character values
 
 cat("Gender:", unique(strokedata$gender),"\n",
@@ -81,7 +83,7 @@ cat("Gender:", unique(strokedata$gender),"\n",
 ```
 Above reveals the Smoking status variable has a value "Unknown". This need to be addressed in the modifying section. Also, the column Gender has one other record. For the N/A the scan function of the 'naniar' package is used.
 
-```{r}
+```{r searching missing values}
 # scan for missing values
 nas <- miss_scan_count(data = strokedata, search = list("N/A", "Unknown"))
 kable(nas, format = 'pipe', caption = "Number of missing values per variable")
@@ -101,7 +103,7 @@ And additionally, the contents of the column ever_married will be converted to b
 
 First the column age will be cast to integer, because a double type with decimals makes no sense in age, secondly, the column bmi will be cast to double, to keep the decimal precision:
 
-```{r, warning=F}
+```{r Cast numeric, warning=F}
 # cast columns to another type
 strokedata <- transform(strokedata, age = as.integer(age))
 strokedata <- transform(strokedata, bmi = as.double(bmi))
@@ -109,7 +111,7 @@ strokedata <- transform(strokedata, bmi = as.double(bmi))
 
 Now the ever_married column need to be changed to binary and a integer datatype:
 
-```{r}
+```{r Cast ever_married}
 # replace yes and no by 1 or 0
 strokedata$ever_married[strokedata$ever_married == "Yes"] <- "1"
 strokedata$ever_married[strokedata$ever_married == "No"] <- "0"
@@ -118,7 +120,8 @@ strokedata <- transform(strokedata, ever_married = as.integer(ever_married))
 
 The character classes will be cast to factor:
 
-```{r}
+```{r Cast char to factor}
+# Cast the character columns to factor
 strokedata$Residence_type <- as.factor(strokedata$Residence_type)
 strokedata$gender <- as.factor(strokedata$gender)
 strokedata$work_type <- as.factor(strokedata$work_type)
@@ -126,11 +129,11 @@ strokedata$work_type <- as.factor(strokedata$work_type)
 
 The record with gender 'Other' will be replaced with an gender value 
 
-```{r}
+```{r Transform Value of age}
 # seek the most present value inside the column
 table(strokedata$gender)
 
-# remove record where gender is other
+# Transform record where gender is equal to other
 strokedata$gender[strokedata$gender == 'Other'] <- "Male"
 ```
 It has been chosen to replace the other value with male, because of the balance inside the variable. 
@@ -138,7 +141,7 @@ It has been chosen to replace the other value with male, because of the balance 
 
 Now what is left are the missing values, BMI has N/A and smoking status has "unknown". For BMI the Na's will be replaced with the mean of the column:
 
-```{r}
+```{r Replacce missing values BMI}
 # replace the missing values with the column mean
 strokedata$bmi[is.na(strokedata$bmi)] <- mean(strokedata$bmi, na.rm = T)
 
@@ -148,16 +151,15 @@ strokedata$bmi <- round(strokedata$bmi, digits = 1)
 
 The smoking status 'unknown' is harder to replace because the variables are character, first we need to know how many records there are of the column:
 
-```{r}
+```{r Table smoking status}
 # Count the unique variables in the gender column
 table(strokedata$smoking_status)
 ```
 Their are 885, 1892 and 789 records of not unknowns. Based on these numbers, we can calculate the probability of occurring in the smoking status variable. 
 
-```{r}
+```{r Calculate probalility}
 # Calculate the probability of formerly smoker, current smokers and non-smokers given that there's only this three categories in the smoking_status column
 
-#prop.table?
 prob.Formerly <- 885 / (885 + 1892 + 789)
 prob.Never <- 1892 / (885 + 1892 + 789)
 prob.Smoke <- 789 / (885 + 1892 + 789)
@@ -165,7 +167,7 @@ prob.Smoke <- 789 / (885 + 1892 + 789)
 
 With the probabilities, we can replace the unknowns based on there weight in the column. 
 
-```{r}
+```{r Replace unknowns smoking status}
 # Replacing 'Unknown' in smoking_status by the other 3 variables according to their weightage
 strokedata$rand <- runif(nrow(strokedata))
 
@@ -187,7 +189,8 @@ colnames(health)[12] <- "smoking_status"
 
 Now we have a column without the unknowns, but with increased other variables based on there weight. Which is shown in the plots below:
 
-```{r echo=F}
+```{r Plot Differances of unknown replacement, echo=F}
+
 # make plot before
 plt1 <- strokedata %>%
     group_by(smoking_status) %>%
@@ -197,9 +200,10 @@ plt1 <- strokedata %>%
           geom_col(fill = c("Orange", "gray", "red", "green")) +
           geom_text(aes(label = count, x = smoking_status, y = count), size = 4, hjust = 1.5) +
           coord_flip() +
-          labs(x = "Smoking status", title = "Smoke status distribution 
+          labs(x = "Smoking status", title = "Figure 1, Smoke status distribution 
                before")
 
+# plot after 
 plt2 <-  health %>%
     group_by(smoking_status) %>%
       summarise(count = length(smoking_status)) %>%
@@ -208,11 +212,10 @@ plt2 <-  health %>%
           geom_col(fill = c("Orange", "gray", "red")) +
           geom_text(aes(label = count, x = smoking_status, y = count), size = 4, hjust = 1.5) +
           coord_flip() +
-          labs(x = "Smoking status", title = "Smoke status distribution 
+          labs(x = "Smoking status", title = "Figure 2, Smoke status distribution 
                after")
-```
 
-```{r echo=FALSE}
+# show plots
 plot_grid(plt1, plt2)
 ```
 
@@ -227,7 +230,7 @@ In this part, the modified data is visualised into useful graphs. These graphs w
 First the summary of the values numeric values, we have three columns with important numeric values, age, glucose level and BMI. The summary of these variables tells about the distribution of values and possible outliers
 
 
-```{r}
+```{r Summary numeric data}
 #summary of subset data
 pander(summary(health[c(3,9:10)],), caption = "Summary of numeric values")
 ```
@@ -238,11 +241,11 @@ Looking at age, the minimum value is 0, which is a bit odd. Maybe this is an unk
 
 The research is about classifying patients chances of stroke based on there lifestyle and health. The figure below is the distribution of the stroke incidents in the data.
 
-```{r}
+```{r Classifier distribution}
 # Plot stroke distribution
 fig1 <- ggplot(health, aes(x=factor(stroke))) + 
   geom_bar(width = 0.6, fill = c("seagreen", "red")) +
-  labs(title = "Stroke distribution", x = "Had a stroke?", y  = "Count")
+  labs(title = "Figure 3, Stroke distribution", x = "Had a stroke?", y  = "Count")
 
 # plot the graph
 fig1 + scale_x_discrete(breaks=c("0", "1"), labels=c("No", "Yes"))
@@ -253,11 +256,11 @@ The number of stroke in the dataset is very low. The vast majority of the data d
 
 There are 5110 people in the dataset from which there is data, the gender and age distribution is as follows:
 
-```{r}
+```{r Age/gender distribution}
 # make age and gender plot
 ggplot(health, aes(x=age, fill=gender, color=gender)) +
     geom_density(alpha =.85) +
-    labs(title = "Age/gender distribution", x = "Age", y  = "Count") + 
+    labs(title = "Figure 4, Age/gender distribution", x = "Age", y  = "Count") + 
     geom_vline(aes(xintercept=mean(age)), color = 'green', lwd = 1, linetype = 'dashed')
 ```
 Most people are around 40 - 60 years old, with some more females round the 20- 40 mark. 
@@ -270,7 +273,8 @@ This section tells about the heath related variables such as, smoking habits, BM
 
 Smoking can affect your health in a bad way, therefore it is good to know how many people (formerly) are smoking.
 
-```{r}
+```{r Smoking status distribution}
+# Plot smoke distribution
 health %>%
   group_by(smoking_status) %>%
     summarise(count = length(smoking_status)) %>%
@@ -279,7 +283,7 @@ health %>%
         geom_col(fill = c("Orange", "gray", "red")) +
         geom_text(aes(label = count, x = smoking_status, y = count), size = 4, hjust = 1.5) +
         coord_flip() +
-        labs(x = "Smoking status", title = "Smoke status distribution")
+        labs(x = "Smoking status", title = "Figure 5, Smoke status distribution")
 ```
 
 Most of the people never smoked, but a fairly amount of the people smokes or formerly smoked. This can indicate a bad overall health, which possible can contribute towards strokes. The term smokes is a bit too general, because it says nothing about how much someone smokes on a daily basis. The same applies to formerly smoking people.  
@@ -289,31 +293,33 @@ Most of the people never smoked, but a fairly amount of the people smokes or for
 
 Body mass index (BMI) and glucose levels are also a good indication of general health. High BMI and glucose levels are considered bad for health. 
 
-```{r}
+```{r BMI/glucose levels distribution}
 
+# Plot BMI distribution
 fig2 <- ggplot(health, aes(x = bmi)) + 
   geom_histogram(aes(y = ..density..), bins = 60, color = 1, fill = "gray") + 
   geom_density(lwd = 1, linetype = 2, color = 'red') +
-  labs(title = "Bmi distribution", x = "Body Mass Index", y = "Density") +
+  labs(title = "Figure 6, Bmi distribution", x = "Body Mass Index", y = "Density") +
   geom_vline(aes(xintercept=mean(bmi)), color = 'green', lwd = 1) +
   geom_vline(xintercept = 35, color = 'blue', lwd = 1)
 
+# Plot Glucose Distribution
 fig3 <- ggplot(health, aes(x = avg_glucose_level)) + 
   geom_histogram(aes(y = ..density..), bins = 60, color = 1, fill = "gray") + 
   geom_density(lwd = 1, linetype = 2, color = 'red') +
-  labs(title = "Glucose level distribution", x = "Average glucose level (mg/dL)", y = "Density") +
+  labs(title = "Figure 7, Glucose level distribution", x = "Average glucose level (mg/dL)", y = "Density") +
   geom_vline(xintercept = 99, color = 'green', lwd = 1) +
   geom_vline(xintercept = 125, color = 'blue', lwd = 1) 
  
-
+# Plot distributions side-by-side
 plot_grid(fig2, fig3, labels = "AUTO", rel_widths = c(1,1))
-
 ```
 BMI has a sort of normal distribution, with a mean of ~ 28. A BMI between 25 - 30 means overweight and 30+ means obese. Their is a fairy amount of people with a BMI higher than 35 (the blue line). This means that a reasonable amount of people in the dataset is serious overweight. 
 
 For glucose level, the distribution is a little bit right skewed with a bulge toward the end of the x axis. The mean of 106 is high. 99 mg/dL or lower is normal, 100 to 125 mg/dL indicates you have pre-diabetes, and 126 mg/dL or higher indicates you have diabetes. The green line represents 99 mg/dL and the blue line 125 mg/dL. These borders shows that, according to the above information. All the people left of the green line are healthy and all the people right of the blue line have diabetes. So, their are some serious unhealty people according to these numbers.
 
-```{r}
+```{r Show unhealth people}
+# show number of people with high glucose and BMI
 length(health$id[health$bmi > 35 & health$avg_glucose_level > 125])
 ```
 It tells that with the above information 265 people are serious unhealthy.
@@ -322,23 +328,24 @@ It tells that with the above information 265 people are serious unhealthy.
 
 There are two cardiovascular diseases in the data, which are heart disease and hypertension.
 
-```{r}
+```{r Show cardiovascular diseases}
+
+# Show hypertension
 fig4 <- ggplot(health, aes(x=factor(hypertension))) + 
   geom_bar(width = 0.6, fill = c("darkgreen", "red")) +
-  labs(title = "Hypertension", x = "Hypertension?", y  = "Count")
+  labs(title = "Figure 8, Hypertension", x = "Hypertension?", y  = "Count") +
+  scale_x_discrete(breaks=c("0", "1"), labels=c("No", "Yes"))
 
-fig4 <- fig4 + scale_x_discrete(breaks=c("0", "1"), labels=c("No", "Yes"))
-
+# Show heart_disease
 fig5 <- ggplot(health, aes(x=factor(heart_disease))) + 
   geom_bar(width = 0.6, fill = c("darkgreen", "red")) +
-  labs(title = "Heart_disease", x = "Heart disease ?", y  = "Count")
+  labs(title = "Figure 9, Heart_disease", x = "Heart disease ?", y  = "Count") + 
+  scale_x_discrete(breaks=c("0", "1"), labels=c("No", "Yes"))
 
-fig5 <- fig5 + scale_x_discrete(breaks=c("0", "1"), labels=c("No", "Yes"))
-
-
+# Plot distributions side-by-side
 plot_grid(fig4, fig5, labels = "AUTO")
 ```
-The cardiovascular diseases are both overwhelming no, this is also imbalanced. 
+The cardiovascular diseases are both overwhelming no, this is also an imbalance problem. 
 
 ## 4.5 Lifestyle varibles
 
@@ -348,33 +355,40 @@ There are three lifestyle variables: married?, work type and residence type. The
 
 The below plot shows the distribution of marriage. A married life could be stressful, even as a divorce. The 'yes' in ever married tells not the whole story, because a person could be married in the past, but is now divorced. These previously married people also are categorised into married. Which makes the 'yes' records a bit iffy. 
 
-```{r}
+```{r Marriage status}
+
+# Plot marriage status
 ggplot(health, aes(x = ever_married)) +
   geom_bar(width = 0.8, fill = c("gray", "gold")) +
   scale_x_continuous(breaks = c(0,1), labels = c("No", "yes")) + 
-  labs(x = "Marriage status", y = "Count", title = "Marrriage status")
+  labs(x = "Marriage status", y = "Count", title = "Figure 10, Marriage status")
 ```
 As is shown, most people have been married at some point in their lives. The not-married group is a sizeable group with people that have not been married. This maybe could be young people, which would be logic. The code below tests this hypothesis:
 
-```{r}
+```{r mean marriage ages}
+
+# Show the mean of married or not married
 cat("Mean age of not married: ", round(mean(health$age[health$ever_married == "0"]), 2), '\n')
 cat("Mean age of ever married: ", round(mean(health$age[health$ever_married == "1"]), 2))
 ```
 As thought, the mean age is ~ 22 years old. Which means that this group mostly are young people.
 
-
 ### 4.5.2 Type of work
 
 The type of work someone preforms can contribute toward higher stress levels. The plot beneath displays the distribution of work types: 
 
-```{r}
+```{r Work type}
+
+# show distribution of work type
 ggplot(health, aes(x = work_type)) +
   geom_bar(position = 'identity', fill = c("orchid", "darkblue", "black", "darkgreen","seagreen")) +
-  labs(x = "Type of work", y = "Count", title = "Type of work per person")
+  labs(x = "Type of work", y = "Count", title = "Figure 11, Type of work per person")
 ```
 looking at the graph, most people work for a private company. Children, government job and self employed are somewhat balanced. Children would be mostly women is the guess. 
 
-```{r}
+```{r genders of parants}
+
+# Show genders with children
 table(health$gender[health$work_type == 'children'])
 ```
 Surprisingly, children is balanced between male and female. so the thought of extra stress on women with children (which possibly can lead to higher stroke chances) can be rejected.  
@@ -383,15 +397,19 @@ Surprisingly, children is balanced between male and female. so the thought of ex
 
 The type of living area can have influence on someone's life, living in a busy urban area maybe contributes to stress. The plot of residence type below shows the spread of living areas. 
 
-```{r}
+```{r Living area}
+
+# Distribution of living area
 ggplot(health, aes(x =  Residence_type)) +
   geom_bar(position = 'identity', fill = c("mediumseagreen", "lightslategray")) +
-    labs(x = "Residence Type", y = "Count", title = "Living area per person")
+    labs(x = "Residence Type", y = "Count", title = "Figure 12, Living area per person")
 ```
 
 The bar plot of residence type shows a balance between the two types. There can be assumed that mostly young people live in urban areas and elderly people leave the busy areas. 
 
-```{r}
+```{r Mean age living area}
+
+# Show mean age of living area
 cat("Mean age of urban: ", round(mean(health$age[health$Residence_type == "Urban"]), 2), '\n')
 cat("Mean age of rural: ", round(mean(health$age[health$Residence_type == "Rural"]), 2))
 ```
@@ -405,7 +423,8 @@ Now that all variables are shown, as standalone. It is time to compare variables
 
 In the dataset there are multiple people with heart disease and hypertension, could this combination be related towards stroke events? We take a look at hypertension at stroke and heart disease at stroke, also we look at heart disease and hypertension together.
 
-```{r}
+```{r Cases of cardiovascular diseases}
+ 
 # total cases of heart diseases and hypertension
 cat(" Number of cases with stroke: ", sum(health$stroke),"\n","Number of cases with heart disease: ", sum(health$heart_disease),"\n","Number of cases with hypertension: ", sum(health$hypertension))
 ```
@@ -413,7 +432,7 @@ Inspecting the numbers above,  their are more heart disease and hypertension cas
 
 So, how many stroke cases did also have underlying conditions such as heart disease and hypertension?
 
-```{r}
+```{r Stroke with cardiovascular diseases}
 # stroke/heart disease
 cat("The number of case with stroke and heart disease are: ",sum(health$stroke[health$heart_disease == 1]),"\n")
 
@@ -427,23 +446,27 @@ The relationship between stroke and heart disease |& hypertension is not big. On
 
 Next, looking at smoke. There is a expectation that smoking is related to cardiovascular diseases. So, expected is that the most stroke events occurred with smokers or formerly smokers.  
 
-```{r}
+```{r stroke vs smoking}
+
+# plot smoking status with strok events
 ggplot(health[health$stroke == T,], aes(x=smoking_status)) + geom_bar(position = 'dodge', fill = c("gray", "gold", "gray")) +
-  labs(x = "Smoking status", y = "Stroke events", title = "Relation of Smoking and stroke events")
+  labs(x = "Smoking status", y = "Stroke events", title = "Figure 13, Relation of Smoking and stroke events")
 ```
 
 The graph above shows that the Group with the most stroke events are the non-smokers. Something that wasn't expected, but take into mind that the non smokers group is also the biggest group in the dataset. Outnumbering the other smoking groups by at least 1000 records. 
 
 high BMI and glucose levels can also contribute towards cardiovascular diseases. The graph beneath checks if it is true that high BMI and glucose levels increase the chance of a stroke.
 
-```{r}
+```{r BMI/glucose relation to stroke}
+
+# plot BMI/glucose of people with stroke history
 ggplot(health[health$stroke == T,], aes(x = avg_glucose_level, y = bmi), ) + geom_point(show.legend = T) + 
-  labs(x = "Glucose level (mg/dL)", y = "Body Mass index", title = "Stroke events, BMI/glucose level values") +
+  labs(x = "Glucose level (mg/dL)", y = "Body Mass index", title = "Figure 14, Stroke events, BMI/glucose level values") +
   geom_hline(yintercept = 35, color = "blue", lwd = 1) +
   geom_vline(xintercept = 125, color = "red", lwd = 1) +
   annotate("text", x= 173, y = 50, label="Critical region", color= "darkred", lwd = 5) +
-  annotate("text", x= 185, y = 20, label="High glucose/low BMI", color= "black", lwd = 5) +
-  annotate("text", x= 85, y = 50, label="High BMI/low glucose", color= "black", lwd = 5) +
+  annotate("text", x= 185, y = 20, label="High glucose/ low BMI", color= "black", lwd = 5) +
+  annotate("text", x= 85, y = 50, label="High BMI/ low glucose", color= "black", lwd = 5) +
   annotate("text", x= 65, y = 20, label="Healthy", color= "darkgreen", lwd = 5) +
   geom_rect(aes(xmin= 125, xmax = 275, ymin = 35, ymax = 60), fill = "red", alpha = 0.002)
 ```
@@ -458,14 +481,18 @@ The lifestyle variables tells about the living, working and marriage status of a
 
 The first look is at Work type, the type of work someone does
 
-```{r}
+```{r Prop.table work type}
+
+# probability table of working type, in percentages
 round(prop.table(table(health$work_type[health$stroke == T])) * 100, 1)
 ```
 The table overhead tells that the  most stroke events happens by people that are working for a private company 59,8%. To recall the plot of work types earlier, the most people work at private companies, so it is not unexpected that the most stroke events happens by people that work for a private company.
 
 Let's take a look a living area. The living area's are rural or urban. Earlier is said that the mean age of living is not that different. So, the assumption that young people, that mostly live in urban regions, decreases the percentage of strokes events in that living region can be rejected. 
 
-```{r}
+```{r Prop.table living area}
+
+# probability table living area, in percentages 
 round(prop.table(table(health$Residence_type[health$stroke == T])) * 100, 1)
 ```
 
@@ -473,17 +500,23 @@ Viewing the percentages above, the most stroke events happens at urban region. W
 
 The variable ever married indicate if a person is married of have been married at some point in their life. The percentages beneath shows the stroke events by married status. 
 
-```{r}
-round(prop.table(table(health$ever_married[health$stroke == T]))* 100, 1)
+```{r Prop.table marriage status}
+
+# Probability table of marriage status, in percentages
+mar_prop <- round(prop.table(table(health$ever_married[health$stroke == T]))* 100, 1)
+names(mar_prop) <- c("Not married", "Married")
+mar_prop
 ```
 
 Interesting is that The majority of the stroke events happens by people that are or have been married, 88,4%. But, take into mind that the most people that are married are older then the not married people. Speaking of age, what is the age where most stroke events take place?
 
-```{r}
+```{r Age/Gender vs stroke}
+
+# plot age and gender of people with stroke history
 ggplot(health[health$stroke == T,], aes(x = age, fill = gender)) +
   geom_density(aes(y = stat(count)), alpha=0.6) + 
   geom_vline(xintercept = mean(health$age[health$stroke == T]), linetype = 'dashed', color = 'seagreen') +
-  labs(x = "Age", y = "Number of stroke events", title = "Age and gender in relation to stroke events" )
+  labs(x = "Age", y = "Number of stroke events", title = "Figure 15, Age and gender in relation to stroke events")
 ```
 
 In the distribution above is clearly seen that strokes mostly affects older people, which is expected. The mean age of stroke is 67 years old. It is also more frequent with female than with male. 
@@ -535,7 +568,8 @@ Inspecting the four methods above for fixing imbalanced dataset. Synthetic Data 
 
 The SMOTE technique creates a new dataset by oversampling observations from the minority class. Which is excellent for this imbalanced dataset. The easiest way is to use the SMOTE() function from the 'DMwR' package. But, there is a problem with using SMOTE, there are categorical variables and numeric variables. SMOTE works best with numeric data. Luckily, the categorical variables are not big. The biggest is work_type with four labels. The code below convert the variables to numeric, there are four variables that need changing: 
 
-```{r}
+```{r Convert all types}
+
 # gender
 health$gender <- as.character(health$gender)
 
@@ -566,7 +600,6 @@ names(health)[names(health) == "Residence_type"] <- "living_urban?"
 health$`living_urban?` <- as.integer(health$`living_urban?`)
 
 #smoking_status
-
 health$smoking_status <- as.character(health$smoking_status)
 
 health$smoking_status[health$smoking_status == "never smoked"] <- 0
@@ -583,7 +616,8 @@ head(health)
 
 Now all the variables are numeric and the classifier is relocated toward the last column. The code below preforms the SMOTE balancing on the dataset. note that SMOTE tent to calculate decimal values of variables with 1 - 4. therefore all values are converted to factors to tackle this problem. Also the classifier is slightly modified to grow more towards SMOTE's preferences. 
 
-```{r}
+```{r Change to factor}
+
 # changes certain variables to factor to prevent problems 
 health$smoking_status <- as.factor(health$smoking_status)
 health$work_type <- as.factor(health$work_type)
@@ -604,12 +638,14 @@ health$stroke <- as.factor(health$stroke)
 
 # write pre-SMOTE data to csv
 write.csv(health, "../Data/health.csv")
+```
 
+```{r Execute SMOTE}
 
 # preform SMOTE on data
 x <- SMOTE(form = stroke ~ ., data = health, perc.over = 3000, perc.under = 150)
 
-# write SMOTE data to csv.
+# Save SMOTE data to csv
 write.csv(x = x, file = "../Data/SMOTEdata.csv")
 ```
 
@@ -636,7 +672,9 @@ The results are tabled below accuracies, all algorithms are executed on default 
 
 **All algorithm tests that are executed are with 10-fold cross validation**
 
-```{r}
+```{r Test different datasets}
+
+# table different accuracies of different dataset
 algo_accuracies <- read.table("../Data/accuracies.txt", sep = ",", header = T)
 colnames(algo_accuracies) <- c("Type of algorithm", "Normal", "Normal (classBalancer)", "SMOTE")
 kable(algo_accuracies, format = "simple", caption = "Accuracies of different algorithms")
@@ -680,7 +718,9 @@ In The test options, cross-validation is set to 10 Folds (default). First a base
 TP = True positive rate
 FP = False positive rate
 
-```{r}
+```{r Baseline algorithm}
+
+# Show the performance of ZeroR in table
 baseline <- read.csv("../Data/zeroR_weka.csv", sep = ";", header = TRUE)
 colnames(baseline)[1] <- "Algorithm ->"
 pander(baseline, caption = "ZeroR mesurement")
@@ -692,7 +732,9 @@ ZeroR is a very simple algorithm that looks only at the classifier, in this case
 
 Now that the baseline is determined, it is time for testing more complex algorithms. Earlier for comparison between normal and SMOTE data a couple of algorithms already were tested on default settings. This time speed, TP and FP also added.
 
-```{r}
+```{r Advanced algorithms}
+
+# Show the performance of advanced algorithms in table form
 advanced_algo <- read.csv("../Data/advanced_weka.csv", sep = ";", header = T)
 colnames(advanced_algo)[1] <- "Algorithms ->"
 kable(advanced_algo, caption = "Advanced algorithms")
@@ -716,10 +758,12 @@ There are 3 ensemble learners that will be tested: Bagging, AdaBoostM1 and stack
 
 The algorithms that are used by stacking are: ZeroR, OneR, J48, RandomForest, NaiveBayes, SimpleLogistic, Logistic and SMO. Especially SMO makes the algorithm very slow 
 
-```{r}
+```{r Ensemble algorithms}
+
+# Show the performance of ensemble algorithms in table form
 ensemble <- read.csv("../Data/ensemble_weka.csv", sep = ";", header = TRUE)
 colnames(ensemble)[1] <- "Algorithm ->"
-pander(ensemble, caption = "ensemble learners")
+pander(ensemble, caption = "Ensemble learners")
 ```
 
 Bagging produces a fast and high accuracy output,  which seem promising. AdaBosstM1 creates are even faster algorithm, but it is not as high as bagging. Stacking is just awful. It took nearly 45 minutes to complete the cross validation and it produces 59,2%...
@@ -736,28 +780,35 @@ There are a number of parameters to play with. Two parameters (to tackle the ove
 
 So, With a low confidence factor and a low minimum number of objects the tree can go its own way. It can split on decimal values many times and possible overfit enormously, like at default. The graph below shows the accuracy in relation to a bigger number of objects. 
 
-```{r}
+```{r J48 MinNUmObj}
+
+# Store data
 accuracy <- c(91.0,90.2,88.5,86.8,84.5,84.1,83.4,83.2,83.2,83.3,83.1,82.8)
 minNumObj <- c(1,2,4,8,20,40,60,80,100,150,200,250)
 
+# Put data in dataframe
 x <- as.data.frame(x = accuracy)
 x$minNumObj <- minNumObj
 
-ggplot(x, aes(x = minNumObj, y = accuracy)) + geom_line(color = "blue", lwd = 1) + geom_vline(xintercept = 50, col= "red") + labs(x = "Minimun number of objects", y = "Accuarcy (%)", title = "Accuracy J48 in relation to minNumObj parameter")
+# plot data
+ggplot(x, aes(x = minNumObj, y = accuracy)) + geom_line(color = "blue", lwd = 1) + geom_vline(xintercept = 50, col= "red") + labs(x = "Minimun number of objects", y = "Accuarcy (%)", title = "Figure 16, Accuracy J48 in relation to minNumObj parameter")
 ```
 In the graph above, it is clearly seen that the minimal number of objects affects the accuracy in a way. The higher the minimum of objects, the lower the accuracy goes. But, after a minimum of 50 objects, the accuracy is more stable in relation to its minimum objects. So, 50 seems to be the sweet spot. Next, the confidence factor is tested in combination with minNumObj of 50.
 
-```{r}
+```{r J48 Confidence factor}
+
+# Store data in variables 
 confi_values <- c(0.01, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50)
 acc_values <- c(84.1, 84.3, 84.3, 84.1, 84.3, 84.3, 84.3)
 size_of_tree <- c(35, 45, 45, 58, 58, 73, 77)
 
+# put data in data frame 
 x <- as.data.frame(confi_values)
 x$acc_values <- acc_values
 x$sizeOfTree <- size_of_tree
 
-
-ggplot(x, aes(x = confi_values, y = acc_values)) + geom_line(aes(color=sizeOfTree), lwd = 3) + labs(y = "Accuracy (%)", x = "Confidence factor", title = "J48 confidence factor difference with minNumObj = 50")
+# plot data
+ggplot(x, aes(x = confi_values, y = acc_values)) + geom_line(aes(color=sizeOfTree), lwd = 3) + labs(y = "Accuracy (%)", x = "Confidence factor", title = "Figure 17, J48 confidence factor difference with minNumObj = 50")
 ```
 The line plot above tells that there is not many difference with a high or low confidence factor. Noticeable is that the size of the tree grows with a higher confidence factor. It is not desirable to have a big complex tree with no usable accuracy gain. So, the verdict is that an optimal tree has a minNumObj of 50, confidence factor of 0.01. by these parameter the size of the tree is 35. which is not to simple nor complex. Which gives an accuracy of **84.13%**
 
@@ -765,15 +816,17 @@ The line plot above tells that there is not many difference with a high or low c
 
 The random forest gives a base accuracy of 95.6%, which is really high. But, is it high because it is good or because is it overfitted? To test this there are a couple of parameters to play with, maxDepth and numIterations. Especially maxDepth is important. This determines how 'deep' the tree may go. The default is 0, which means unlimited. This unlimited depth causes complex overfitted trees, which get high accuracies. So, by limiting its depth, the accuracy gets more reliable. the graph underneath, looks at the effect on accuracy with different maxDepth.
 
-```{r}
+```{r Random forest}
+# Gather data  
 depth <- c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20)
 accuracy <- c(78.7, 81.9, 82.5, 82.9, 83.3, 83.7, 84.6, 85.5, 86.8, 88.2, 89.7, 91.4, 92.6, 93.6, 94.5, 95.1, 95.4, 95.6, 95.6 , 95.6)
 
+# enter data in dataframe
 x <- as.data.frame(depth)
 x$accuracy <- accuracy
 
-ggplot(x, aes(x = depth, y = accuracy)) + geom_line(lwd = 2) + labs(x = "Maximun depth of tree", y = "Accuracy (%)", title = "RandomForest Effect of maxDepth parameter on Accuracy") + geom_hline(yintercept = 84.6, col = 'darkred') + geom_vline(xintercept = 7, col = 'darkred')
-
+# Plot data
+ggplot(x, aes(x = depth, y = accuracy)) + geom_line(lwd = 2) + labs(x = "Maximun depth of tree", y = "Accuracy (%)", title = "Figure 18, RandomForest Effect of maxDepth parameter on Accuracy") + geom_hline(yintercept = 84.6, col = 'darkred') + geom_vline(xintercept = 7, col = 'darkred')
 ```
 
 The accuracy increases slowly with each higher depth level. After a depth of 15, it flattens out around the 95% mark. To tackle overfitting, a low depth is desirable, but a depth of 2 gives 'low' accuracies. but a too high depth creates overfitting problems. So, we take a depth of 7. Not too low and not too high. A depth of 7 gives a accuracy of **84.6%**
@@ -783,19 +836,25 @@ The accuracy increases slowly with each higher depth level. After a depth of 15,
 Bagging or **B**ootstrap **agg**regat**ing** is a ensamble model to improve stability and accuracy of combined machine learning algorithms. It also reduces variance and helps avoid overfitting. The preventing of overfitting is great in this experiment. The Bagging model has a couple of parameter to tweak, but the most impacting is numIteration. The number of iterartions the model preforms. The default is 10. Which earlier gave an accuracy of 91,5%. But more iteration means that it will be slower. So, the time to build a model will also be noted.
 
 
-```{r}
+```{r Bagging}
+
+# Store data in variables 
 numOfIters <- c(1,10,20,30,40,50,60,70,80,90,100)
 accuracy <- c(87.2, 91.4, 91.5, 92.0, 91.9, 92.0, 92.0, 92.0, 92.0, 92.0, 92.0)
 timeModel <-c(0.08, 0.81, 1.61, 2.29, 3.04, 3.65, 4.46, 5.24, 6.09, 6.79, 7.51)
 
+# Make dataframe for the data
 x <- as.data.frame(numOfIters)
 x$accuracy <- accuracy
 x$timeModel <- timeModel
 
-plot1 <- ggplot(x, aes(x = numOfIters, y = accuracy)) + geom_line(lwd = 1.5) + labs(x = "Number of Iterations", y = "Accuracy (%)", title = "Accuracy vs number of iterations")
+# make plot object for number of iterations
+plot1 <- ggplot(x, aes(x = numOfIters, y = accuracy)) + geom_line(lwd = 1.5) + labs(x = "Number of Iterations", y = "Accuracy (%)", title = "Figure 19, Accuracy vs number of iterations")
 
-plot2 <- ggplot(x, aes(x = numOfIters, y = timeModel)) + geom_line(lwd = 1.5) + labs(x = "Number of Iterations", y = "Speed (seconds)", title = "Time vs number of iterations")
+#make plot object for time
+plot2 <- ggplot(x, aes(x = numOfIters, y = timeModel)) + geom_line(lwd = 1.5) + labs(x = "Number of Iterations", y = "Speed (seconds)", title = "Figure 20, Time vs number of iterations")
 
+# plot side-by-side
 grid.arrange(plot1, plot2, ncol=2)
 ```
 Looking at the graphs above, at +- 30 iterations it flattens out. There is no more gain after that. The down side is that, the more iteration the longer it takes to finish. Remember that after the model build it executes a 10-fold cross validation, which takes time. 
@@ -803,36 +862,65 @@ Looking at the graphs above, at +- 30 iterations it flattens out. There is no mo
 The optimal number of iterations is around 30, where it peaks in accuracy and only takes 2.29 seconds to build a model. Fast and accurate. Which gives a accuracy of **92.0%**
 
 
-## 7.5 Verdict
+## 7.5 ML Verdict
 
 After parameter optimization, there are three accuracies of three models: J48 with 84.13%, RandomForest with 84.6% and Bagging with 92%. 
 
-```{r}
+```{r Performance selected algorithms}
+
+# Store data
 algoName <- c("ZeroR", "J48", "RandomForest", "Bagging")
 acc <- c(59.2, 84.13, 84.6, 92.0)
 timealgo <- c(0.01, 0.26, 1.12, 2.29)
 
+# dataframe data
 x <- as.data.frame(algoName)
 x$acc <- acc
 x$timealgo <- timealgo
 
+# plot data
 ggplot(x, aes(x = acc, y = algoName)) + geom_bar(stat = 'identity', fill = c("darkred", "steelblue1", "steelblue1", "springgreen3")) + 
   geom_text(aes(label = timealgo), position = position_dodge(width = 0.9), hjust = 1.5, color = 'white') +
-  labs(x = "Accuracy (%)", y = "Name of algorithm", title = "Performance selected algorithms") +
+  labs(x = "Accuracy (%)", y = "Name of algorithm", title = "Figure 21, Performance selected algorithms") +
   annotate(x = 75, y = 4, geom = "text", label = " <--- Model build time")
 ```
-Their is seen that Bagging preforms the overall best, it is to 'slowest' of the 4 but still fast enough for not heavy usage. If we recall the quality metrics: The demand was a high scoring algorithm that also was fast. A good confusion matrix was also desirable. 
+In the graph above, Bagging preforms the overall best, it is to 'slowest' of the 4 but still fast enough for not heavy usage. If we recall the quality metrics: The demand was a high scoring algorithm that also was fast. A good confusion matrix was also desirable. 
 
-// confusion matrix
+A confusion matrix is a table with predictions against actual values. It includes two dimensions. Below is the confusion matrix for the optimized bagging algorithm.
 
-t tp = 92
-t fp = 2,6
-f tp = 97,4
-f fp = 8 
+```{r Confusion matrix}
 
-// roc curve
+# make confusion matrix
+confusion_matrix <- matrix(data = c(90.6, 6.9, 9.4, 93.1), nrow = 2, ncol = 2, dimnames = list(c(TRUE,FALSE), c(TRUE,FALSE)), )
+confusion_matrix
+```
+This confusion matrix shows at the top the predicted value and the rows as actual values. The numbers are percentages. The matrix shows a solid 90+ percentage for The True positives of True and false. There is a 9.4% false positive rate, which is not great but not the worst. 6.9% is the false negative rate, which is a little bit to high. It means that roughly 7% of all the people are told that they don't have a higher change on stroke events, but they do. 
 
-// final model
+A ROC curve is a plot that illustrates the diagnostic ability of a binary classifier system. It is a tool to control and select optimal models and 
+discard worse models. It is related to a cost/benefit analyses. The Area under the curve (AUC), describes the performance. A perfect classification has a AUC of 1. Which means that the lines lays prefect along the axis. How more the bulge lies in the direction of the top left corner, the better the AUC is. 
+
+```{r ROC curve }
+# load roc curve data for file
+roc <- readARFF(path = "../Data/roc_curve.arff", show.info = F)
+
+# plot curve
+ggplot(roc, aes(y = `True Positive Rate`, x = `False Positive Rate`)) + geom_line(aes(color = Threshold), lwd = 2) + labs(title = "Figure 22, ROC Curve, Area under ROC = 0.9751") + scale_color_gradient(low = "blue", high = 'orange')
+```
+Above is the ROC curve of the bagging algorithm, with a AUC of 0.9751, the model preforms very well. The curve indicates a good model. 
+
+Overall The bagging algorithm is the best. High accuracy, fast and a good scoring confusion matrix. Also, the AUC is promising. Therefore is the bagging algorithm chosen to be used. To get the same results, simpely follow the instructions below:
+
+When the data is loaded in, remove the first empty row and the row with ID's. Next, apply the options below.
+
+The Bagging algorithm with the following options: 
+
+- numIterations = 30
+
+This algorithm will be featured in the wrapper, so that it can be executed as a command line application. The goal is that a user can input records or data and that the command line application with the bagging model, outputs a accuracy. The wrapper and it supporting files can be found here:
+
+https://github.com/PascalVisser/Thema_09_MLAnalysis/tree/main/JavaWrapper 
+
+
 
 
 
