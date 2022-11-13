@@ -20,14 +20,14 @@ library(tidyverse)
 library(naniar)
 library(readr)
 library(ggplot2)
-library(lemon)
 library(knitr)
 library(pander)
-library(cowplot)
 library(dplyr)
-library(DMwR)
+library(DMwR) #note, The package ‘DMwR’ was removed from the CRAN repository trough several problems. 
+              #The package can be retrieved by using the following command: remotes::install_github("cran/DMwR") 
 library(gridExtra)
 library(farff)
+library(cowplot)
 ```
 
 
@@ -43,11 +43,15 @@ This dataset consists of people that had a stroke and people that have not. The 
 # 2. Dataset
 
 The data is as said, lifestyle information of people with stroke history or not. In this section the data will be talked trough and the variables explained.
+
+link to data: https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset
+
 First the data is loaded in:
 
 ```{r Read data}
 # load in the data
 strokedata <- read.csv("../Data/Stroke_dataset.csv", header = T)
+head(strokedata, 8)
 
 # visualize
 kable(strokedata[1:6, 1:6], format = 'simple', caption = "Head of data")
@@ -287,7 +291,7 @@ health %>%
 ```
 
 Most of the people never smoked, but a fairly amount of the people smokes or formerly smoked. This can indicate a bad overall health, which possible can contribute towards strokes. The term smokes is a bit too general, because it says nothing about how much someone smokes on a daily basis. The same applies to formerly smoking people.  
-
+z
 
 ### 4.4.2 BMI and Glucose levels
 
@@ -320,7 +324,7 @@ For glucose level, the distribution is a little bit right skewed with a bulge to
 
 ```{r Show unhealth people}
 # show number of people with high glucose and BMI
-length(health$id[health$bmi > 35 & health$avg_glucose_level > 125])
+sum(health$stroke[health$bmi > 35 & health$avg_glucose_level > 125 & health$hypertension == 1 & health$heart_disease == 1 & health$smoking_status == 'smokes'])
 ```
 It tells that with the above information 265 people are serious unhealthy.
 
@@ -482,7 +486,7 @@ The lifestyle variables tells about the living, working and marriage status of a
 The first look is at Work type, the type of work someone does
 
 ```{r Prop.table work type}
-
+ 
 # probability table of working type, in percentages
 round(prop.table(table(health$work_type[health$stroke == T])) * 100, 1)
 ```
@@ -833,7 +837,7 @@ The accuracy increases slowly with each higher depth level. After a depth of 15,
 
 *Bagging*
 
-Bagging or **B**ootstrap **agg**regat**ing** is a ensamble model to improve stability and accuracy of combined machine learning algorithms. It also reduces variance and helps avoid overfitting. The preventing of overfitting is great in this experiment. The Bagging model has a couple of parameter to tweak, but the most impacting is numIteration. The number of iterartions the model preforms. The default is 10. Which earlier gave an accuracy of 91,5%. But more iteration means that it will be slower. So, the time to build a model will also be noted.
+Bagging or **B**ootstrap **agg**regat**ing** is a ensemble model to improve stability and accuracy of combined machine learning algorithms. It also reduces variance and helps avoid overfitting. The preventing of overfitting is great in this experiment. The Bagging model has a couple of parameter to tweak, but the most impacting is numIteration. The number of iterations the model preforms. The default is 10. Which earlier gave an accuracy of 91,5%. But more iteration means that it will be slower. So, the time to build a model will also be noted.
 
 
 ```{r Bagging}
@@ -884,7 +888,7 @@ ggplot(x, aes(x = acc, y = algoName)) + geom_bar(stat = 'identity', fill = c("da
   labs(x = "Accuracy (%)", y = "Name of algorithm", title = "Figure 21, Performance selected algorithms") +
   annotate(x = 75, y = 4, geom = "text", label = " <--- Model build time")
 ```
-In the graph above, Bagging preforms the overall best, it is to 'slowest' of the 4 but still fast enough for not heavy usage. If we recall the quality metrics: The demand was a high scoring algorithm that also was fast. A good confusion matrix was also desirable. 
+In the graph above, Bagging preforms the overall best, it is the 'slowest' of the 4 but still fast enough for not heavy usage. If we recall the quality metrics: The demand was a high scoring algorithm that also was fast. A good confusion matrix was also desirable. 
 
 A confusion matrix is a table with predictions against actual values. It includes two dimensions. Below is the confusion matrix for the optimized bagging algorithm.
 
