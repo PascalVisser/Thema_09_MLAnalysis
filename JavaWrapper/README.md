@@ -31,7 +31,7 @@ The folder src/main/java/nl/bioinf contains the java files CLhandler.java and We
 - CLhandler.java is the argument parser java file, not executable
 - WekaBaggingRunner.java is the classifying java file, executable.
 
-The folder scr/main/java/resources contains the model file. This is the file that the WekaBaggingRunner uses as input for a model. 
+The folder scr/main/resources contains the model file. This is the file that the WekaBaggingRunner uses as input for a model. 
 
 The folder testdata has a file with unknown instances. The WEkaBaggingRunner file can uses this file as input. 
 
